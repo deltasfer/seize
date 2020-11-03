@@ -1,0 +1,545 @@
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/./seize.py
+
+
+
+
+import pyglet
+from pyglet.window import key
+from src.utils import *
+from src import GraphManager as gm
+from src.dic import *
+
+
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__)) # fopatouché
+if ' ' in CURRENT_PATH:
+    print('Le chemin d\'acces contient un espace. Le programme va BUGUER SA MERE.')
+    print('Changez le programme de place pour un path sans espace svp.')
+
+
+"""###########################################################"""
+
+class App(pyglet.window.Window):
+
+
+    ### INIT FUNCTIONS
+
+    def __init__(self):
+
+        super(App, self).__init__()
+
+        self.path = CURRENT_PATH
+
+        self.size_scr = 1000,800
+        self.set_size(self.size_scr[0],self.size_scr[1])
+
+        self.fscreen = False
+
+        ## screens
+        display = pyglet.canvas.get_display()
+        self.screens = display.get_screens()
+        used_screen = self.get_current_screen()
+        self.size_fullscr = [used_screen.width,used_screen.height]
+        self.S = self.get_size()
+
+    def init(self):
+
+        ### PART I : several thgs
+
+        self.action = 'editing'
+
+        """
+        actions:
+        -editing
+        """
+
+
+        ## keys
+        self.keys = key.KeyStateHandler()
+        self.push_handlers(self.keys)
+
+        ## mouse
+        self.R,self.L = False,False
+        self.M = [0,0]
+
+        ## fps
+        self.print_fps = False
+
+
+        ### PART II : sprites etc
+
+        ## dics, batch / group
+        self.textures = {}
+        self.sprites = {}
+
+        self.batch = pyglet.graphics.Batch()
+
+        self.group_10 = pyglet.graphics.OrderedGroup(-10)
+        self.group0 = pyglet.graphics.OrderedGroup(0)
+        self.group10 = pyglet.graphics.OrderedGroup(10)
+
+        ## bg
+        self.textures['mainbg'] = gm.get_square((35,35,35,255),self.size_fullscr)
+        self.sprites['mainbg'] = pyglet.sprite.Sprite(self.textures['mainbg'],batch=self.batch,group=self.group_10)
+
+
+
+        ### PART III : final launch
+
+        ## launching the machine u know (launching gameloop)
+        self.playing = True
+        self.draww = True
+        self.nb = 0
+
+        pyglet.clock.schedule_interval(self.gameloop,0.0000000000001)
+        pyglet.app.run()
+
+    def get_current_screen(self):
+
+        x,y = self.get_location()
+        for i in range(len(self.screens)):
+            scr = self.screens[i]
+            if (x >= scr.x and x <= scr.x + scr.width) and (y >= scr.y and y <= scr.y + scr.height):
+                return scr
+        return self.screens[0]
+
+    ### PYGLET EVENTS
+
+    def on_key_press(self,symbol,modifiers):
+
+        #print(symbol,modifiers,key.LCTRL)
+
+        ## controls globaux
+
+        if symbol == key.ESCAPE:
+            self.playing = False
+
+        elif symbol == key.F11:
+            #print(self.fscreen)
+            if self.fscreen:
+                self.fscreen = False
+                self.set_fullscreen(False)
+                self.set_size(self.size_scr[0],self.size_scr[1])
+            else:
+                self.fscreen = True
+                used_screen=self.get_current_screen()
+                self.set_fullscreen(screen=used_screen)
+                self.size_fullscr = [used_screen.width,used_screen.height]
+
+        ## controls avec modifieurs
+
+        if self.keys[key.LCTRL]:
+
+            if symbol == key.K:
+                self.draww = not self.draww
+
+            elif symbol == key.F:
+                self.print_fps = not self.print_fps
+
+        if self.keys[key.LSHIFT]:
+            print(key.symbol_string(symbol))
+
+        else:
+            print(key.symbol_string(symbol))
+
+    def on_mouse_motion(self,x,y,dx,dy):
+
+        self.M = [x,y]
+        self.mouse_speed = module(dx,dy)
+
+    def on_mouse_drag(self,x, y, dx, dy, buttons, modifiers):
+
+        self.M = [x,y]
+        self.mouse_speed = module(dx,dy)
+
+    ### EVENTS
+
+    def events(self):
+
+        if self.action == 'playing':
+            print(self.M)
+
+    def on_my_resize(self):
+        self.S = self.get_size()
+
+    ### GAMELOOP
+
+    def draw(self):
+
+        if self.draww:
+            self.batch.draw()
+
+    def refresh(self):
+
+        self.S = self.get_size()
+
+    def gameloop(self,dt):
+
+        pyglet.clock.tick()
+
+        if self.nb == 0:
+
+            self.label_fps = pyglet.text.Label('',font_name='arial',font_size=32,group=self.group10, \
+                            batch=self.batch,color=(0,0,0,255),anchor_y='top')
+
+        self.nb+=1
+        self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
+        self.label_fps.text = 'FPS : '+str(int(pyglet.clock.get_fps()))
+
+        #print(self.S)
+
+        if self.playing:
+
+            ### EVENTS
+            self.events()
+
+            ### CLEAR
+            self.clear()
+
+            ### REFRESH
+            self.refresh()
+
+            ### DRAW
+            self.draw()
+
+
+        else:
+            print('\n\nNumber of lines :',compt(self.path))
+            save_files(self.path)
+
+            self.close()
+
+
+
+"""###########################################################"""
+
+def main():
+
+    app = App()
+    app.init()
+
+if __name__ == '__main__':
+    main()
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/src/dic.py
+
+
+
+from pyglet.window import key
+print(key)
+
+"""low_dic = {key.SPACE : ' ',key.EXCLAMATION : '!',key.DOUBLEQUOTE : '\"',key.HASH : "#"
+                ,key.POUND : '£',key.DOLLAR : '$',key.PERCENT : '%',key.AMPERSAND : '*'
+                ,key.APOSTROPHE : '\'',key.PARENLEFT : '(',key.PARENRIGHT : ')',key.ASTERISK : '*'
+                ,key.PLUS : '+',key.COMMA : '*',key.MINUS : '*',key.PERIOD : '*',key.SLASH : '\\',key._0 : 'à'
+                ,key._1 : '&',key._2 : 'é',key._3 : '\"',key._4 : '\'',key._5 : '(',key._6 : '-',key._7 : 'è',key._8 : '_',key._9 : 'ç'
+                ,key.COLON : '*',key.SEMICOLON : '*',key.LESS : '-',key.EQUAL : '=',key.GREATER : '*',key.QUESTION : '?',key.AT : '@'
+                ,key.BRACKETLEFT : '[',key.BACKSLASH : '/',key.BRACKETRIGHT : ']',key.ASCIICIRCUM : '*',key.UNDERSCORE : '_',key.GRAVE : '`'
+                ,key.QUOTELEFT : '<',key.A : 'a',key.B : 'b',key.C : 'c',key.D : 'd',key.E : 'e',key.F : 'f',key.G : 'g',key.H : 'h',key.I : 'i'
+                ,key.J : 'j',key.K : 'k',key.L : 'l',key.M : 'm',key.N : 'n',key.O : 'o',key.P : 'p',key.Q : 'q',key.R : 'r',key.S : 's'
+                ,key.T : 't',key.U : 'u',key.V : 'v',key.W : 'w',key.X : 'x',key.Y : 'y',key.Z : 'z',key.BRACELEFT : '{',key.BAR : '|'
+                ,key.BRACERIGHT : '}',key.ASCIITILDE : '*'
+                ,key.NUM_0 : '0',key.NUM_1 : '1',key.NUM_2 : '2',key.NUM_3 : '3',key.NUM_4 : '4',key.NUM_5 : '5',key.NUM_6 : '6'
+                ,key.NUM_7 : '7',key.NUM_8 : '8',key.NUM_9 : '9',
+                }"""
+
+low_dic = {key.SPACE : ' ',key.EXCLAMATION : '!'
+                ,key.DOLLAR : '$',key.PERCENT : '%'
+                ,key.PARENRIGHT : ')',key.ASTERISK : '*'
+                ,key.COMMA : '*',key.PERIOD : '*',key.SLASH : '\\',key._0 : 'à'
+                ,key._1 : '&',key._2 : 'é',key._3 : '\"',key._4 : '\'',key._5 : '(',key._6 : '-',key._7 : 'è',key._8 : '_',key._9 : 'ç'
+                ,key.COLON : '*',key.SEMICOLON : '*',key.LESS : '-',key.EQUAL : '=',key.GREATER : '*',key.QUESTION : '?',key.AT : '@'
+                ,key.BRACKETLEFT : '[',key.BACKSLASH : '/',key.BRACKETRIGHT : ']',key.ASCIICIRCUM : '*',key.UNDERSCORE : '_',key.GRAVE : '`'
+                ,key.QUOTELEFT : '<',key.A : 'a',key.B : 'b',key.C : 'c',key.D : 'd',key.E : 'e',key.F : 'f',key.G : 'g',key.H : 'h',key.I : 'i'
+                ,key.J : 'j',key.K : 'k',key.L : 'l',key.M : 'm',key.N : 'n',key.O : 'o',key.P : 'p',key.Q : 'q',key.R : 'r',key.S : 's'
+                ,key.T : 't',key.U : 'u',key.V : 'v',key.W : 'w',key.X : 'x',key.Y : 'y',key.Z : 'z',key.BRACELEFT : '{',key.BAR : '|'
+                ,key.BRACERIGHT : '}',key.ASCIITILDE : '*'
+                ,key.NUM_0 : '0',key.NUM_1 : '1',key.NUM_2 : '2',key.NUM_3 : '3',key.NUM_4 : '4',key.NUM_5 : '5',key.NUM_6 : '6'
+                ,key.NUM_7 : '7',key.NUM_8 : '8',key.NUM_9 : '9',
+                }
+
+up_dic = {key.SPACE : ' ',key.EXCLAMATION : '§',key.DOUBLEQUOTE : '\"',key.HASH : "#"
+                ,key.POUND : '£',key.DOLLAR : '$',key.PERCENT : '%',key.AMPERSAND : '*'
+                ,key.APOSTROPHE : '\'',key.PARENLEFT : '(',key.PARENRIGHT : '°',key.ASTERISK : '*'
+                ,key.PLUS : '+',key.COMMA : '*',key.MINUS : '*',key.PERIOD : '*',key.SLASH : '\\',key._0 : '0'
+                ,key._1 : '1',key._2 : '2',key._3 : '3',key._4 : '4',key._5 : '5',key._6 : '6',key._7 : '7',key._8 : '8',key._9 : '9'
+                ,key.COLON : '*',key.SEMICOLON : '*',key.LESS : '-',key.EQUAL : '+',key.GREATER : '*',key.QUESTION : '?',key.AT : '@'
+                ,key.BRACKETLEFT : '[',key.BACKSLASH : '/',key.BRACKETRIGHT : ']',key.ASCIICIRCUM : '*',key.UNDERSCORE : '_',key.GRAVE : '`'
+                ,key.QUOTELEFT : '<',key.A : 'a',key.B : 'b',key.C : 'c',key.D : 'd',key.E : 'e',key.F : 'f',key.G : 'g',key.H : 'h',key.I : 'i'
+                ,key.J : 'j',key.K : 'k',key.L : 'l',key.M : 'm',key.N : 'n',key.O : 'o',key.P : 'p',key.Q : 'q',key.R : 'r',key.S : 's'
+                ,key.T : 't',key.U : 'u',key.V : 'v',key.W : 'w',key.X : 'x',key.Y : 'y',key.Z : 'z',key.BRACELEFT : '{',key.BAR : '|'
+                ,key.BRACERIGHT : '}',key.ASCIITILDE : '*'
+                ,key.NUM_0 : '0',key.NUM_1 : '1',key.NUM_2 : '2',key.NUM_3 : '3',key.NUM_4 : '4',key.NUM_5 : '5',key.NUM_6 : '6'
+                ,key.NUM_7 : '7',key.NUM_8 : '8',key.NUM_9 : '9',
+                }
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/src/GraphManager.py
+
+
+
+
+import pyglet
+
+def get_square(color=(255,255,255,255),size=(100,100)):
+
+    img = pyglet.image.SolidColorImagePattern(color)
+    return img.create_image(*size)
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/src/utils.py
+
+
+
+
+
+
+import random,os,ctypes,time
+from ctypes import windll, Structure, c_long, byref
+from math import *
+#from win32gui import GetWindowRect, GetForegroundWindow, GetWindowText
+
+
+class POINT(Structure):
+    _fields_ = [("x", c_long), ("y", c_long)]
+
+## partie SCREEN
+
+def get_screen_size():
+    user32 = ctypes.windll.user32
+    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+
+
+## partie random
+
+def choice(thg):
+
+    if type(thg) == type({}):
+        return choice(list(thg.keys()))
+        #print(thg.keys())
+    else:
+        return random.choice(thg)
+
+def randmultint(n,a,b=None): #returns n differents numbers between a and b-1
+
+    if b == None:
+        return randmultint(n,0,a-1)
+    else:
+        t = []
+        while len(t) < n:
+            new = random.randint(a,b-1)
+            while new in t:
+                new = random.randint(a,b-1)
+            t.append(new)
+        return t
+
+
+def get_key_from_value(d,v,s=[]): # v valeur seule, d dic ou tab
+
+    if type(d) == type({}):
+        for key,val in d.items():
+            if type(val) != type({}) and type(val) != type([]):
+                if v == val:
+                    return s+[key]
+            else:
+                ns = get_key_from_value(val,v,s+[key])
+                if ns != None:
+                    return ns
+
+    elif type(d) == type([]):
+        for key in range(len(d)):
+            val = d[key]
+            if type(val) != type({}) and type(val) != type([]):
+                #print(val)
+                if v == val:
+                    return s+[key]
+            else:
+                ns = get_key_from_value(val,v,s+[key])
+                if ns != None:
+                    return ns
+
+    return None
+
+def getMousePos():
+    pt = POINT()
+    windll.user32.GetCursorPos(byref(pt))
+    return pt.x,pt.y
+
+def module(x,y):
+    return sqrt(x**2+y**2)
+
+def int_rd(dec):
+    if dec < int(dec)+0.5:
+        return int(dec)
+    else:
+        return ceil(dec)
+
+def sign(n):
+    if n==0:
+        return 0
+    else:
+        return n//abs(n)
+
+def rangef(a,b,d=1):
+
+    res = []
+    if b > a:
+        while b>a:
+            res.append(a)
+            a+=d
+    else:
+        while abs(b-a)>0:
+            res.append(a)
+            a+=d
+
+    return res
+
+ids = 1112
+
+def get_id(key):
+
+    global ids
+
+    id = ''+key
+    id+=str(ids)
+    ids+=1
+    return id
+
+def mycopy(thg):
+
+    if type(thg) == type([]):
+
+        res = []
+
+        for i in thg:
+            res.append(mycopy(i))
+
+        return res
+
+    else:
+
+        return thg
+
+def truncate(f, n=3):
+    '''Truncates/pads a float f to n decimal places without rounding'''
+    s = '{}'.format(f)
+    if 'e' in s or 'E' in s:
+        return '{0:.{1}f}'.format(f, n)
+    i, p, d = s.partition('.')
+    return '.'.join([i, (d+'0'*n)[:n]])
+
+### PARTIE AUTO-SAUVEGARDE
+
+def save_files(bigpath,path = ['/.','/src'],save_path = '/autosav/'):
+
+    autosav = ''
+
+    for chem in path:
+        #print('path',bigpath+chem,':',os.listdir(bigpath+chem))
+        try:
+            for file in os.listdir(bigpath+chem):
+                if file[-3:] == '.py':
+                    autosav += '\n\n\n _newfile_ :' + bigpath+chem+'/'+file + '\n\n\n'
+                    with open(bigpath+chem+'/'+file,'r') as f:
+                        autosav += f.read()
+        except :
+            jsghd=0
+            #print('no path',bigpath+chem,':',os.listdir(bigpath+chem))
+
+    version = ['alpha',10001]
+
+    try:
+        with open(bigpath+save_path+'version','r') as f:
+            tab = f.read().split('_')
+            version = [tab[0],int(tab[1])*10000+int(tab[2])]
+        version[1]+=1
+        with open(bigpath+save_path+'version','w') as f:
+            f.write(version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:])
+    except:
+        os.makedirs(bigpath+save_path)
+        with open(bigpath+save_path+'version','w') as f:
+            f.write(version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:])
+
+    with open(bigpath+save_path+'saved_'+version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:]+'.savd','w') as f:
+        f.write(autosav)
+
+    print('files saved, version',version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:])
+
+def recup_files(path2):
+
+    currentpath = path2.split('\\')[-1]
+    currentpath = currentpath.split('/')[-1]
+    currentpath = path2[:(len(path2)-len(currentpath))]
+
+    all =[]
+    with open(path2,'r') as f:
+        all = f.readlines()
+
+    files = {}
+    titles = [0]
+    file = []
+    for line in all:
+        if '_newfile_ :' in line and line[-4:] == '.py\n':
+            name = line[len('_newfile_ '):]
+            names = name.split('\\')
+            names2 = []
+
+            for nam in names:
+                for naam in nam.split('/'):
+                    names2.append(naam)
+                    name = ('/').join(names2[-2:])
+
+            files[titles[-1]] = file
+            titles.append(name[:-1])
+            file = []
+        else:
+            file.append(line)
+
+    files[titles[-1]] = file
+
+    for name in files:
+        print(name)
+        if name != 0:
+            try:
+                with open(currentpath+name,'w') as f:
+                    for line in files[name]:
+                        f.write(line)
+            except :
+                file = name.split('/')[0]
+                os.makedirs(currentpath+file)
+                with open(currentpath+name,'w') as f:
+                    for line in files[name]:
+                        f.write(line)
+
+def get_version(bigpath,save_path = '/autosav/'):
+    version = ['alpha',10001]
+
+    try:
+        with open(bigpath+save_path+'version','r') as f:
+            tab = f.read().split('_')
+            version = [tab[0],int(tab[1])*10000+int(tab[2])]
+    except:
+        a=0
+    return version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:]
+
+def compt(bigpath,path = ['/.','/src']):
+
+    long = 0
+
+    for chem in path:
+        try:
+            for file in os.listdir(bigpath+chem):
+                if file[-3:] == '.py':
+                    with open(bigpath+chem+'/'+file,'r') as f:
+                        long += len(f.readlines())
+        except :
+            jsghd=0
+            #print('no path',bigpath+chem,':',os.listdir(bigpath+chem))
+
+    return long
