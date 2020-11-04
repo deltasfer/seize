@@ -168,10 +168,6 @@ class App(pyglet.window.Window):
         if self.action == 'playing':
             print(self.M)
 
-    """def on_my_resize(self):
-        self.S = self.get_size()
-        print("tamer")"""
-
     ### GAMELOOP
 
     def draw(self):
@@ -184,9 +180,7 @@ class App(pyglet.window.Window):
         self.S = self.get_size()
 
         ### refresh seize
-        #self.seize.move((self.S[0]/2,self.S[1]/2))
         self.seize.refresh()
-
 
     def gameloop(self,dt):
 

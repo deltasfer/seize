@@ -17,7 +17,6 @@ class MyLabel(pyglet.text.Label):
                         color=color, x=x, y=y, width=width, height=height, \
                         anchor_x=anchor_x, anchor_y=anchor_y, align=align, multiline=multiline, dpi=dpi, batch=batch, group=group)
 
-
     def get_end(self,cursor):
         if cursor == 'end':
             cursor = len(self.text)
@@ -170,15 +169,3 @@ class Seize():
     def movedx(self,vec):
         self.x,self.y = self.x+vec[0],self.y+vec[1]
         self.refresh()
-
-
-
-"""
-    ## littles functions
-
-
-    def get_square(color=(255,255,255,255),size=(100,100)):
-
-        img = pyglet.image.SolidColorImagePattern(color)
-        return img.create_image(*size)
-"""
