@@ -10,6 +10,8 @@ low_dic = {key.SPACE : ' ',key.EXCLAMATION : '!'
                 ,key.PARENRIGHT : ')',key.ASTERISK : '*',char_little2:'²'
                 ,key.COMMA : ','
 
+                ,key.TAB : '   '
+
                 ,key._0 : 'à',key._1 : '&',key._2 : 'é',key._3 : '\"',key._4 : '\'',key._5 : '(',key._6 : '-',key._7 : 'è',key._8 : '_',key._9 : 'ç'
 
                 ,key.COLON : ':',key.SEMICOLON : ';',key.LESS : '<',key.EQUAL : '='
@@ -27,6 +29,8 @@ up_dic = {key.SPACE : ' ',key.EXCLAMATION : '§'
                 ,key.PARENRIGHT : '°',key.ASTERISK : 'µ'
                 ,key.COMMA : '?'
 
+                ,key.TAB : '   '
+
                 ,key._0 : '0',key._1 : '1',key._2 : '2',key._3 : '3',key._4 : '4',key._5 : '5',key._6 : '6',key._7 : '7',key._8 : '8',key._9 : '9'
 
                 ,key.COLON : '/',key.SEMICOLON : '.',key.LESS : '>',key.EQUAL : '+'
@@ -38,3 +42,21 @@ up_dic = {key.SPACE : ' ',key.EXCLAMATION : '§'
                 ,key.NUM_0 : '0',key.NUM_1 : '1',key.NUM_2 : '2',key.NUM_3 : '3',key.NUM_4 : '4',key.NUM_5 : '5',key.NUM_6 : '6'
                 ,key.NUM_7 : '7',key.NUM_8 : '8',key.NUM_9 : '9',
                 }
+
+modif_dic = {key.BACKSPACE : 'back'
+            ,key.RETURN : 'enter'
+            ,key.ENTER : 'enter'}
+
+motion_dic ={key.LEFT : 'left'
+            ,key.UP : 'up'
+            ,key.RIGHT : 'right'
+            ,key.DOWN : 'down'
+
+
+            ,key.END : 'end'
+
+            ,key.HOME : 'home'
+            ,key.PAGEUP : 'pageup'
+            ,key.PAGEDOWN : 'pagedown'
+            ,key.BEGIN : 'begin'
+            }

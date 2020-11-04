@@ -1,6 +1,7 @@
 
 
 import pyglet
+import pyglet.gl as gl
 from pyglet.window import key
 from src.utils import *
 from src import graphic as g
@@ -58,9 +59,6 @@ class App(pyglet.window.Window):
         self.R,self.L = False,False
         self.M = [0,0]
 
-        ## fps
-        #self.print_fps = False
-
 
         ### PART II : sprites etc
 
@@ -74,9 +72,6 @@ class App(pyglet.window.Window):
         self.group0 = pyglet.graphics.OrderedGroup(0)
         self.group10 = pyglet.graphics.OrderedGroup(10)
 
-        ## bg
-        self.textures['mainbg'] = g.get_square((35,35,35,255),self.size_fullscr)
-        self.sprites['mainbg'] = pyglet.sprite.Sprite(self.textures['mainbg'],batch=self.batch,group=self.group_10)
 
         ### PART III : labels / cursor => Seizes
 
@@ -147,7 +142,10 @@ class App(pyglet.window.Window):
             if symbol in low_dic:
                 self.seize.change(low_dic[symbol])
 
-        #if symbol in motion_dic:
+        if symbol in motion_dic:
+            self.seize.motion(motion_dic[symbol])
+        elif symbol in modif_dic:
+            self.seize.modif(modif_dic[symbol])
 
     def on_mouse_motion(self,x,y,dx,dy):
 
@@ -159,6 +157,10 @@ class App(pyglet.window.Window):
         self.M = [x,y]
         self.mouse_speed = module(dx,dy)
 
+        #print(dx,dy)
+
+        self.seize.movedx((dx,dy))
+
     ### EVENTS
 
     def events(self):
@@ -166,8 +168,9 @@ class App(pyglet.window.Window):
         if self.action == 'playing':
             print(self.M)
 
-    def on_my_resize(self):
+    """def on_my_resize(self):
         self.S = self.get_size()
+        print("tamer")"""
 
     ### GAMELOOP
 
@@ -180,6 +183,11 @@ class App(pyglet.window.Window):
 
         self.S = self.get_size()
 
+        ### refresh seize
+        #self.seize.move((self.S[0]/2,self.S[1]/2))
+        self.seize.refresh()
+
+
     def gameloop(self,dt):
 
         pyglet.clock.tick()
@@ -187,11 +195,11 @@ class App(pyglet.window.Window):
         if self.nb == 0:
 
             self.label_fps = pyglet.text.Label('',font_name='arial',font_size=32,group=self.group10, \
-                            batch=self.batch,color=(0,0,0,255),anchor_y='top')
+                            batch=self.batch,color=(255,255,255,255),anchor_y='top')
 
 
             self.cursor = pyglet.text.Label('',font_name='arial',font_size=16,group=self.group10, \
-                            batch=self.batch,color=(0,0,0,255),anchor_y='top')
+                            batch=self.batch,color=(255,255,255,255),anchor_y='top')
 
         self.nb+=1
         self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
@@ -207,6 +215,7 @@ class App(pyglet.window.Window):
             ### EVENTS
             self.events()
 
+            gl.glClearColor(1/35,1/35,1/35,1)
             ### CLEAR
             self.clear()
 
