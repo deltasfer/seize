@@ -72,10 +72,25 @@ class App(pyglet.window.Window):
         self.group0 = pyglet.graphics.OrderedGroup(0)
         self.group10 = pyglet.graphics.OrderedGroup(10)
 
+        ## managers
+        self.tman = g.TextureManager()
+        self.sman = g.SpriteManager(self.batch)
+
+        ## sprites
+
 
         ### PART III : labels / cursor => Seizes
 
-        self.seize = g.Seize('megaseize',group=self.group0,batch=self.batch,x=self.S[0]/2,y=self.S[1]/2)
+        ## seizes
+        self.sz_id = []
+        self.seize = {}
+        self.sz = 0
+
+        self.sz_id.append(get_id('sz'))
+        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=self.S[0]/2,y=self.S[1]/2)
+
+        ## cursor
+        self.cursor = g.Cursor(self.sz_id[0],100,100,self.group10,self.batch)
 
         ### PART IV : final launch
 
@@ -135,17 +150,17 @@ class App(pyglet.window.Window):
         if self.keys[key.LSHIFT]:
 
             if symbol in up_dic:
-                self.seize.change(up_dic[symbol])
+                self.seize[self.sz_id[self.sz]].change(up_dic[symbol])
 
         else:
 
             if symbol in low_dic:
-                self.seize.change(low_dic[symbol])
+                self.seize[self.sz_id[self.sz]].change(low_dic[symbol])
 
         if symbol in motion_dic:
-            self.seize.motion(motion_dic[symbol])
+            self.seize[self.sz_id[self.sz]].motion(motion_dic[symbol])
         elif symbol in modif_dic:
-            self.seize.modif(modif_dic[symbol])
+            self.seize[self.sz_id[self.sz]].modif(modif_dic[symbol])
 
     def on_mouse_motion(self,x,y,dx,dy):
 
@@ -159,7 +174,7 @@ class App(pyglet.window.Window):
 
         #print(dx,dy)
 
-        self.seize.movedx((dx,dy))
+        self.seize[self.sz_id[self.sz]].movedx((dx,dy))
 
     ### EVENTS
 
@@ -180,7 +195,10 @@ class App(pyglet.window.Window):
         self.S = self.get_size()
 
         ### refresh seize
-        self.seize.refresh()
+        for id in self.seize:
+            self.seize[id].refresh()
+
+        self.cursor.refresh(self.seize[self.cursor.sz],self.S)
 
     def gameloop(self,dt):
 
@@ -191,16 +209,9 @@ class App(pyglet.window.Window):
             self.label_fps = pyglet.text.Label('',font_name='arial',font_size=32,group=self.group10, \
                             batch=self.batch,color=(255,255,255,255),anchor_y='top')
 
-
-            self.cursor = pyglet.text.Label('',font_name='arial',font_size=16,group=self.group10, \
-                            batch=self.batch,color=(255,255,255,255),anchor_y='top')
-
         self.nb+=1
         self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
         self.label_fps.text = 'FPS : '+str(int(pyglet.clock.get_fps()))
-
-        self.cursor.x,self.cursor.y = 20,self.S[1] -60
-        self.cursor.text = 'cursor '+str(self.seize.name)+' : '+str(self.seize.cursor)
 
         #print(self.S)
 

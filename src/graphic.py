@@ -22,6 +22,21 @@ class MyLabel(pyglet.text.Label):
             cursor = len(self.text)
         return self.text[cursor:]
 
+    def get_width(self,cursor):
+
+        if cursor == 'end':
+            if self.text == '':
+                return 0
+            return self.content_width
+        elif cursor <= -len(self.text):
+            return 0
+        else:
+            old = self.text
+            self.del_end(cursor)
+            w = self.content_width
+            self.text = old
+            return w
+
     def del_end(self,cursor):
         if cursor == 'end':
             cursor = len(self.text)
@@ -106,11 +121,17 @@ class Seize():
             self.cursor[0] -= 1
             if self.cursor[0] < 0:
                 self.cursor[0] = 0
+            elif self.cursor[1] != 'end':
+                if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
+                    self.motion('begin')
 
         elif motion == 'down':
             self.cursor[0] += 1
             if self.cursor[0] >= len(self.cont):
                 self.cursor[0] = len(self.cont) -1
+            elif self.cursor[1] != 'end':
+                if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
+                    self.motion('begin')
 
         elif motion == 'begin':
             self.cursor[1]=-len(self.cont[self.cursor[0]].text)
@@ -169,3 +190,69 @@ class Seize():
     def movedx(self,vec):
         self.x,self.y = self.x+vec[0],self.y+vec[1]
         self.refresh()
+
+
+### CURSOR
+
+class Cursor(pyglet.sprite.Sprite):
+
+    def __init__(self,id_label,x=0,y=0,group=None,batch=None):
+
+        tman = TextureManager()
+        text = tman.add_Texture(1,1)
+
+        super(Cursor,self).__init__(text,x,y,batch=batch,group=group)
+        self.sz = id_label
+
+        self.cmd = pyglet.text.Label('',font_name='arial',font_size=16,group=group, \
+                        batch=batch,color=(255,255,255,255),anchor_y='top')
+
+    def refresh(self,seize,S):
+
+        self.cmd_refresh(seize,S)
+        self.update(scale_x=2,scale_y=seize.font_size[seize.summary[seize.cursor[0]]])
+
+        y = seize.y
+        #print(seize.x,seize.y)
+
+        for i in range(seize.cursor[0]):
+            y = y - seize.font_size[seize.summary[i]] - seize.padding
+        self.y = y
+
+        self.x = seize.x + seize.cont[seize.cursor[0]].get_width(seize.cursor[1])
+
+        """if seize.cursor[1] == 'end':
+             = seize.x + seize.cont[seize.cursor[0]].content_width
+        else:
+            self.x = seize.x + seize.font_size[seize.summary[seize.cursor[0]]]*(len(seize.cont[seize.cursor[0]].text)-cur1)"""
+
+
+    def cmd_refresh(self,seize,S):
+
+        self.cmd.x,self.cmd.y = 20,S[1] -60
+        self.cmd.text = 'cursor '+str(seize.name)+' : '+str(seize.cursor)
+
+
+### SPRITES, FILTERS, ...
+
+class TextureManager():
+
+    def __init__(self):
+
+        self.textures = []
+
+    def add_Texture(self,w,h,color=(255,255,255,255)):
+
+        pattern = pyglet.image.SolidColorImagePattern(color)
+        return pattern.create_image(w,h)
+
+class SpriteManager():
+
+    def __init__(self,batch):
+
+        self.sprites = []
+        self.batch= batch
+
+    def add_Spr(self,text,x,y,group):
+
+        return pyglet.sprite.Sprite(text,x,y,batch=self.batch,group=group)
