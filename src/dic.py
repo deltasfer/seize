@@ -45,7 +45,8 @@ up_dic = {key.SPACE : ' ',key.EXCLAMATION : '§'
 
 modif_dic = {key.BACKSPACE : 'back'
             ,key.RETURN : 'enter'
-            ,key.ENTER : 'enter'}
+            ,key.ENTER : 'enter'
+            ,key.DELETE : 'delete'}
 
 motion_dic ={key.LEFT : 'left'
             ,key.UP : 'up'

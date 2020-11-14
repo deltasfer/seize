@@ -62,6 +62,7 @@ class MyLabel(pyglet.text.Label):
             if cursor != 0:
                 self.text = text[:cursor-1] + text[cursor:]
 
+
 ### SEIZE
 
 class Seize():
@@ -167,7 +168,6 @@ class Seize():
                     self.cont = self.cont[:self.cursor[0]] + self.cont[self.cursor[0]+1:]
                     self.cursor[0]-=1
 
-
         elif key == 'enter':
 
             newtext = self.cont[self.cursor[0]].get_end(self.cursor[1])
@@ -176,6 +176,12 @@ class Seize():
             self.add_Lab(self.cursor[0]+1,newtext)
             self.motion('down')
             self.motion('begin')
+
+        elif key == 'delete':
+            self.motion('right')
+            self.modif('back')
+
+
 
     def change(self,char,cur=None):
         if cur == None:
