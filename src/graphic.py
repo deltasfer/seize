@@ -121,17 +121,27 @@ class Seize():
             self.cursor[0] -= 1
             if self.cursor[0] < 0:
                 self.cursor[0] = 0
-            elif self.cursor[1] != 'end':
-                if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
-                    self.motion('begin')
+            else:
+                cur = self.convert_cursor_end_to_beg(self.cursor[0]+1,self.cursor[1])
+                self.cursor[1] = self.convert_cursor_beg_to_end(self.cursor[0],cur)
+                if self.cursor[1] >= 0:
+                    self.cursor[1] = 'end'
+
+                """if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
+                    self.motion('begin')"""
 
         elif motion == 'down':
+
             self.cursor[0] += 1
             if self.cursor[0] >= len(self.cont):
                 self.cursor[0] = len(self.cont) -1
-            elif self.cursor[1] != 'end':
-                if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
-                    self.motion('begin')
+            else:
+                cur = self.convert_cursor_end_to_beg(self.cursor[0]-1,self.cursor[1])
+                self.cursor[1] = self.convert_cursor_beg_to_end(self.cursor[0],cur)
+                if self.cursor[1] >= 0:
+                    self.cursor[1] = 'end'
+                """if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
+                    self.motion('begin')"""
 
         elif motion == 'begin':
             self.cursor[1]=-len(self.cont[self.cursor[0]].text)
@@ -144,7 +154,19 @@ class Seize():
     def modif(self,key):
 
         if key in ['back']:
-            self.cont[self.cursor[0]].modif(self.cursor[1],key)
+            if self.convert_cursor_end_to_beg(*self.cursor) > 0:
+                self.cont[self.cursor[0]].modif(self.cursor[1],key)
+            elif self.cursor[0] != 0:
+                if self.len_seize() == 0 :
+                    self.cont[self.cursor[0]].delete()
+                    self.cont = self.cont[:self.cursor[0]] + self.cont[self.cursor[0]+1:]
+                    self.cursor = [self.cursor[0]-1,'end']
+                else:
+                    self.change(self.cont[self.cursor[0]].text,(self.cursor[0]-1,'end'))
+                    self.cont[self.cursor[0]].delete()
+                    self.cont = self.cont[:self.cursor[0]] + self.cont[self.cursor[0]+1:]
+                    self.cursor[0]-=1
+
 
         elif key == 'enter':
 
@@ -155,8 +177,11 @@ class Seize():
             self.motion('down')
             self.motion('begin')
 
-    def change(self,char):
-        self.cont[self.cursor[0]].change(self.cursor[1],char)
+    def change(self,char,cur=None):
+        if cur == None:
+            self.cont[self.cursor[0]].change(self.cursor[1],char)
+        else:
+            self.cont[cur[0]].change(cur[1],char)
 
     def add_Lab(self,cursor,text='',style='normal'):
 
@@ -190,6 +215,22 @@ class Seize():
     def movedx(self,vec):
         self.x,self.y = self.x+vec[0],self.y+vec[1]
         self.refresh()
+
+    # getters
+
+    def convert_cursor_end_to_beg(self,line,cur):
+        if cur == 'end':
+            cur = 0
+        return len(self.cont[line].text) + cur
+
+    def convert_cursor_beg_to_end(self,line,cur):
+        if cur == 'end':
+            cur = 0
+        return -len(self.cont[line].text) + cur
+
+    def len_seize(self):
+        return len(self.cont[self.cursor[0]].text)
+
 
 
 ### CURSOR

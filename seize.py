@@ -55,6 +55,8 @@ class App(pyglet.window.Window):
         self.keys = key.KeyStateHandler()
         self.push_handlers(self.keys)
 
+        self.keys_pressed = {} # example {key.A:[145124 sec,"modif"]}
+
         ## mouse
         self.R,self.L = False,False
         self.M = [0,0]
@@ -87,7 +89,7 @@ class App(pyglet.window.Window):
         self.sz = 0
 
         self.sz_id.append(get_id('sz'))
-        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=self.S[0]/2,y=self.S[1]/2)
+        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=self.S[0]/2,y=500)
 
         ## cursor
         self.cursor = g.Cursor(self.sz_id[0],100,100,self.group10,self.batch)
@@ -151,16 +153,24 @@ class App(pyglet.window.Window):
 
             if symbol in up_dic:
                 self.seize[self.sz_id[self.sz]].change(up_dic[symbol])
+                self.keys_pressed[symbol] = [time.time(),"up"]
 
         else:
-
             if symbol in low_dic:
                 self.seize[self.sz_id[self.sz]].change(low_dic[symbol])
+                self.keys_pressed[symbol] = [time.time(),"low"]
 
         if symbol in motion_dic:
             self.seize[self.sz_id[self.sz]].motion(motion_dic[symbol])
+            self.keys_pressed[symbol] = [time.time(),"motion"]
         elif symbol in modif_dic:
             self.seize[self.sz_id[self.sz]].modif(modif_dic[symbol])
+            self.keys_pressed[symbol] = [time.time(),"modif"]
+
+    def on_key_release(self,symbol,modifiers):
+
+        if symbol in self.keys_pressed:
+            del self.keys_pressed[symbol]
 
     def on_mouse_motion(self,x,y,dx,dy):
 
@@ -182,6 +192,21 @@ class App(pyglet.window.Window):
 
         if self.action == 'playing':
             print(self.M)
+
+        delay_pressed = 0.4
+        current_time = time.time()
+
+        for key in self.keys_pressed:
+            if current_time - self.keys_pressed[key][0] > delay_pressed:
+                if self.keys_pressed[key][1] == "up":
+                    self.seize[self.sz_id[self.sz]].change(up_dic[key])
+                elif self.keys_pressed[key][1] == "low":
+                    self.seize[self.sz_id[self.sz]].change(low_dic[key])
+                elif self.keys_pressed[key][1] == "motion":
+                    self.seize[self.sz_id[self.sz]].motion(motion_dic[key])
+                elif self.keys_pressed[key][1] == "modif":
+                    self.seize[self.sz_id[self.sz]].modif(modif_dic[key])
+
 
     ### GAMELOOP
 
