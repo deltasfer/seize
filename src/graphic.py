@@ -62,10 +62,14 @@ class MyLabel(pyglet.text.Label):
             if cursor != 0:
                 self.text = text[:cursor-1] + text[cursor:]
 
+    def get_xy(self):
+        return self.x,self.y
 
 ### SEIZE
 
 class Seize():
+
+    # init
 
     def __init__(self,name, x=0, y=0, batch=None, group=None):
 
@@ -86,6 +90,8 @@ class Seize():
         self.summary = ['normal']
 
         #self.comment = [...]
+
+    # main fonctions
 
     def motion(self,motion):
 
@@ -178,16 +184,17 @@ class Seize():
             self.motion('begin')
 
         elif key == 'delete':
-            self.motion('right')
-            self.modif('back')
-
-
+            if self.cursor != [len(self.cont)-1,'end']:
+                self.motion('right')
+                self.modif('back')
 
     def change(self,char,cur=None):
         if cur == None:
             self.cont[self.cursor[0]].change(self.cursor[1],char)
         else:
             self.cont[cur[0]].change(cur[1],char)
+
+    # one time fonctions
 
     def add_Lab(self,cursor,text='',style='normal'):
 
@@ -204,16 +211,6 @@ class Seize():
         for i in range(cursor+1,len(self.cont)):
             self.cont[i].y = self.cont[i].y - self.font_size[style] - self.padding
 
-    def refresh(self):
-
-        y = self.y
-        #print(self.x,self.y)
-
-        for i in range(len(self.cont)):
-            self.cont[i].y = y
-            self.cont[i].x = self.x
-            y = y - self.font_size[self.summary[i]] - self.padding
-
     def move(self,pos):
         self.x,self.y = pos
         self.refresh()
@@ -221,6 +218,22 @@ class Seize():
     def movedx(self,vec):
         self.x,self.y = self.x+vec[0],self.y+vec[1]
         self.refresh()
+
+    def adapt_xy(self,oldS,S):
+        self.x *= S[0]/oldS[0]
+        self.y *= S[1]/oldS[1]
+
+    # refresh
+
+    def refresh(self,anchor=(0,0)):
+
+        y = self.y + anchor[1]
+        #print(self.x,self.y)
+
+        for i in range(len(self.cont)):
+            self.cont[i].y = y
+            self.cont[i].x = self.x + anchor[0]
+            y = y - self.font_size[self.summary[i]] - self.padding
 
     # getters
 
@@ -254,25 +267,19 @@ class Cursor(pyglet.sprite.Sprite):
         self.cmd = pyglet.text.Label('',font_name='arial',font_size=16,group=group, \
                         batch=batch,color=(255,255,255,255),anchor_y='top')
 
-    def refresh(self,seize,S):
+    def refresh(self,seize,S,anchor=(0,0)):
 
         self.cmd_refresh(seize,S)
         self.update(scale_x=2,scale_y=seize.font_size[seize.summary[seize.cursor[0]]])
 
-        y = seize.y
+        y = seize.y + anchor[1]
         #print(seize.x,seize.y)
 
         for i in range(seize.cursor[0]):
             y = y - seize.font_size[seize.summary[i]] - seize.padding
         self.y = y
 
-        self.x = seize.x + seize.cont[seize.cursor[0]].get_width(seize.cursor[1])
-
-        """if seize.cursor[1] == 'end':
-             = seize.x + seize.cont[seize.cursor[0]].content_width
-        else:
-            self.x = seize.x + seize.font_size[seize.summary[seize.cursor[0]]]*(len(seize.cont[seize.cursor[0]].text)-cur1)"""
-
+        self.x = seize.x + anchor[0] + seize.cont[seize.cursor[0]].get_width(seize.cursor[1])
 
     def cmd_refresh(self,seize,S):
 

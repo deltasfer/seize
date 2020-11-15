@@ -1,0 +1,934 @@
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/./seize.py
+
+
+
+
+import pyglet
+import pyglet.gl as gl
+from pyglet.window import key
+from src.utils import *
+from src import graphic as g
+from src.dic import *
+
+
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__)) # fopatouché
+if ' ' in CURRENT_PATH:
+    print('Le chemin d\'acces contient un espace. Le programme va BUGUER SA MERE.')
+    print('Changez le programme de place pour un path sans espace svp.')
+
+
+"""###########################################################"""
+
+class App(pyglet.window.Window):
+
+
+    ### INIT FUNCTIONS
+
+    def __init__(self):
+
+        super(App, self).__init__()
+
+        self.path = CURRENT_PATH
+
+        self.size_scr = 1000,800
+        self.set_size(self.size_scr[0],self.size_scr[1])
+
+        self.fscreen = False
+
+        ## screens
+        display = pyglet.canvas.get_display()
+        self.screens = display.get_screens()
+        used_screen = self.get_current_screen()
+        self.size_fullscr = [used_screen.width,used_screen.height]
+        self.S = self.get_size()
+
+    def init(self):
+
+        ### PART I : several thgs
+
+        self.action = 'editing'
+
+        """
+        actions:
+        -editing
+        """
+
+
+        ## keys
+        self.keys = key.KeyStateHandler()
+        self.push_handlers(self.keys)
+
+        self.keys_pressed = {} # example {key.A:[145124 sec,"modif"]}
+
+        ## mouse
+        self.R,self.L = False,False
+        self.M = [0,0]
+
+
+        ### PART II : sprites etc
+
+        ## dics, batch / group
+        self.textures = {}
+        self.sprites = {}
+
+        self.batch = pyglet.graphics.Batch()
+
+        self.group_10 = pyglet.graphics.OrderedGroup(-10)
+        self.group0 = pyglet.graphics.OrderedGroup(0)
+        self.group10 = pyglet.graphics.OrderedGroup(10)
+
+        ## managers
+        self.tman = g.TextureManager()
+        self.sman = g.SpriteManager(self.batch)
+
+        ## sprites
+
+
+        ### PART III : labels / cursor => Seizes
+
+        ## seizes
+        self.sz_id = []
+        self.seize = {}
+        self.sz = 0
+
+        self.sz_id.append(get_id('sz'))
+
+        self.anchor = self.S[0]*0.5,self.S[1]*0.5
+
+        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=-self.S[0]*0.25,y=self.S[1]*0.25)
+
+        ## cursor
+        self.cursor = g.Cursor(self.sz_id[0],group=self.group10,batch=self.batch)
+
+        ### PART IV : final launch
+
+        ## launching the machine u know (launching gameloop)
+        self.playing = True
+        self.draww = True
+        self.nb = 0
+
+        pyglet.clock.schedule_interval(self.gameloop,0.0000000000001)
+        pyglet.app.run()
+
+    def get_current_screen(self):
+
+        x,y = self.get_location()
+        for i in range(len(self.screens)):
+            scr = self.screens[i]
+            if (x >= scr.x and x <= scr.x + scr.width) and (y >= scr.y and y <= scr.y + scr.height):
+                return scr
+        return self.screens[0]
+
+    ### PYGLET EVENTS
+
+    def on_key_press(self,symbol,modifiers):
+
+        #print(symbol)
+
+        ## controls globaux
+
+        if symbol == key.ESCAPE:
+            self.playing = False
+
+        elif symbol == key.F11:
+            #print(self.fscreen)
+            if self.fscreen:
+                self.fscreen = False
+                self.set_fullscreen(False)
+                self.set_size(self.size_scr[0],self.size_scr[1])
+            else:
+                self.fscreen = True
+                used_screen=self.get_current_screen()
+                self.set_fullscreen(screen=used_screen)
+                self.size_fullscr = [used_screen.width,used_screen.height]
+
+        ## controls avec et sans modifieurs
+
+        if self.keys[key.LCTRL]:
+
+            if symbol == key.K:
+                self.draww = not self.draww
+
+            elif symbol == key.F:
+                if self.label_fps.color[3] == 0:
+                    self.label_fps.color = [*self.label_fps.color[:3],255]
+                elif self.label_fps.color[3] == 255:
+                    self.label_fps.color = [*self.label_fps.color[:3],0]
+
+        if self.keys[key.LSHIFT]:
+
+            if symbol in up_dic:
+                self.seize[self.sz_id[self.sz]].change(up_dic[symbol])
+                self.keys_pressed[symbol] = [time.time(),"up"]
+
+        else:
+            if symbol in low_dic:
+                self.seize[self.sz_id[self.sz]].change(low_dic[symbol])
+                self.keys_pressed[symbol] = [time.time(),"low"]
+
+        if symbol in motion_dic:
+            self.seize[self.sz_id[self.sz]].motion(motion_dic[symbol])
+            self.keys_pressed[symbol] = [time.time(),"motion"]
+        elif symbol in modif_dic:
+            self.seize[self.sz_id[self.sz]].modif(modif_dic[symbol])
+            self.keys_pressed[symbol] = [time.time(),"modif"]
+
+    def on_key_release(self,symbol,modifiers):
+
+        if symbol in self.keys_pressed:
+            del self.keys_pressed[symbol]
+
+    def on_mouse_motion(self,x,y,dx,dy):
+
+        self.M = [x,y]
+        self.mouse_speed = module(dx,dy)
+
+    def on_mouse_drag(self,x, y, dx, dy, buttons, modifiers):
+
+        self.M = [x,y]
+        self.mouse_speed = module(dx,dy)
+
+        #print(dx,dy)
+
+        self.seize[self.sz_id[self.sz]].movedx((dx,dy))
+
+    ### EVENTS
+
+    def events(self):
+
+        if self.action == 'playing':
+            print(self.M)
+
+        delay_pressed = 0.4
+        current_time = time.time()
+
+        for key in self.keys_pressed:
+            if current_time - self.keys_pressed[key][0] > delay_pressed:
+                if self.keys_pressed[key][1] == "up":
+                    self.seize[self.sz_id[self.sz]].change(up_dic[key])
+                elif self.keys_pressed[key][1] == "low":
+                    self.seize[self.sz_id[self.sz]].change(low_dic[key])
+                elif self.keys_pressed[key][1] == "motion":
+                    self.seize[self.sz_id[self.sz]].motion(motion_dic[key])
+                elif self.keys_pressed[key][1] == "modif":
+                    self.seize[self.sz_id[self.sz]].modif(modif_dic[key])
+
+
+    ### GAMELOOP
+
+    def draw(self):
+
+        if self.draww:
+            self.batch.draw()
+
+    def refresh(self):
+
+        if self.get_size() != self.S:
+            for id in self.seize:
+                self.seize[id].adapt_xy(self.S,self.get_size())
+            self.S = self.get_size()
+
+
+        self.anchor = self.S[0]*0.5,self.S[1]*0.5
+        print(self.S,self.anchor)
+
+        ### refresh seize
+        for id in self.seize:
+            self.seize[id].refresh(self.anchor)
+
+        #lab1 = self.seize[self.sz_id[self.sz]].cont[0]
+        #print(lab1.get_xy())
+
+        self.cursor.refresh(self.seize[self.cursor.sz],self.S,self.anchor)
+
+    def gameloop(self,dt):
+
+        pyglet.clock.tick()
+
+        if self.nb == 0:
+
+            self.label_fps = pyglet.text.Label('',font_name='arial',font_size=32,group=self.group10, \
+                            batch=self.batch,color=(255,255,255,255),anchor_y='top')
+
+        self.nb+=1
+        self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
+        self.label_fps.text = 'FPS : '+str(int(pyglet.clock.get_fps()))
+
+        #print(self.S)
+
+        if self.playing:
+
+            ### EVENTS
+            self.events()
+
+            gl.glClearColor(1/35,1/35,1/35,1)
+            ### CLEAR
+            self.clear()
+
+            ### REFRESH
+            self.refresh()
+
+            ### DRAW
+            self.draw()
+
+
+        else:
+            print('\n\nNumber of lines :',compt(self.path))
+            save_files(self.path)
+
+            self.close()
+
+
+
+"""###########################################################"""
+
+def main():
+
+    app = App()
+    app.init()
+
+if __name__ == '__main__':
+    main()
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/src/dic.py
+
+
+
+from pyglet.window import key
+
+ù = 824633720832
+char_little2 = 953482739712
+char_chapo = 949187772416
+
+low_dic = {key.SPACE : ' ',key.EXCLAMATION : '!'
+                ,key.DOLLAR : '$' ,ù : 'ù'
+                ,key.PARENRIGHT : ')',key.ASTERISK : '*',char_little2:'²'
+                ,key.COMMA : ','
+
+                ,key.TAB : '   '
+
+                ,key._0 : 'à',key._1 : '&',key._2 : 'é',key._3 : '\"',key._4 : '\'',key._5 : '(',key._6 : '-',key._7 : 'è',key._8 : '_',key._9 : 'ç'
+
+                ,key.COLON : ':',key.SEMICOLON : ';',key.LESS : '<',key.EQUAL : '='
+
+                ,key.A : 'a',key.B : 'b',key.C : 'c',key.D : 'd',key.E : 'e',key.F : 'f',key.G : 'g',key.H : 'h',key.I : 'i'
+                ,key.J : 'j',key.K : 'k',key.L : 'l',key.M : 'm',key.N : 'n',key.O : 'o',key.P : 'p',key.Q : 'q',key.R : 'r',key.S : 's'
+                ,key.T : 't',key.U : 'u',key.V : 'v',key.W : 'w',key.X : 'x',key.Y : 'y',key.Z : 'z'
+
+                ,key.NUM_0 : '0',key.NUM_1 : '1',key.NUM_2 : '2',key.NUM_3 : '3',key.NUM_4 : '4',key.NUM_5 : '5',key.NUM_6 : '6'
+                ,key.NUM_7 : '7',key.NUM_8 : '8',key.NUM_9 : '9',
+                }
+
+up_dic = {key.SPACE : ' ',key.EXCLAMATION : '§'
+                ,key.DOLLAR : '£' ,ù : '%'
+                ,key.PARENRIGHT : '°',key.ASTERISK : 'µ'
+                ,key.COMMA : '?'
+
+                ,key.TAB : '   '
+
+                ,key._0 : '0',key._1 : '1',key._2 : '2',key._3 : '3',key._4 : '4',key._5 : '5',key._6 : '6',key._7 : '7',key._8 : '8',key._9 : '9'
+
+                ,key.COLON : '/',key.SEMICOLON : '.',key.LESS : '>',key.EQUAL : '+'
+
+                ,key.A : 'A',key.B : 'B',key.C : 'C',key.D : 'D',key.E : 'E',key.F : 'F',key.G : 'G',key.H : 'H',key.I : 'I'
+                ,key.J : 'J',key.K : 'K',key.L : 'L',key.M : 'M',key.N : 'N',key.O : 'O',key.P : 'P',key.Q : 'Q',key.R : 'R',key.S : 'S'
+                ,key.T : 'T',key.U : 'U',key.V : 'V',key.W : 'W',key.X : 'X',key.Y : 'Y',key.Z : 'Z'
+
+                ,key.NUM_0 : '0',key.NUM_1 : '1',key.NUM_2 : '2',key.NUM_3 : '3',key.NUM_4 : '4',key.NUM_5 : '5',key.NUM_6 : '6'
+                ,key.NUM_7 : '7',key.NUM_8 : '8',key.NUM_9 : '9',
+                }
+
+modif_dic = {key.BACKSPACE : 'back'
+            ,key.RETURN : 'enter'
+            ,key.ENTER : 'enter'
+            ,key.DELETE : 'delete'}
+
+motion_dic ={key.LEFT : 'left'
+            ,key.UP : 'up'
+            ,key.RIGHT : 'right'
+            ,key.DOWN : 'down'
+
+
+            ,key.END : 'end'
+
+            ,key.HOME : 'home'
+            ,key.PAGEUP : 'pageup'
+            ,key.PAGEDOWN : 'pagedown'
+            ,key.BEGIN : 'begin'
+            }
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/src/graphic.py
+
+
+
+
+import pyglet
+
+
+
+### LABELS
+
+class MyLabel(pyglet.text.Label):
+
+
+    def __init__(self,text='', font_name=None, font_size=None, bold=False, italic=False, \
+                    color=(255, 255, 255, 255), x=0, y=0, width=None, height=None, \
+                    anchor_x='left', anchor_y='baseline', align='left', multiline=False, dpi=None, batch=None, group=None):
+
+        super(MyLabel,self).__init__(text=text,font_name=font_name, font_size=font_size, bold=bold, italic=italic, \
+                        color=color, x=x, y=y, width=width, height=height, \
+                        anchor_x=anchor_x, anchor_y=anchor_y, align=align, multiline=multiline, dpi=dpi, batch=batch, group=group)
+
+    def get_end(self,cursor):
+        if cursor == 'end':
+            cursor = len(self.text)
+        return self.text[cursor:]
+
+    def get_width(self,cursor):
+
+        if cursor == 'end':
+            if self.text == '':
+                return 0
+            return self.content_width
+        elif cursor <= -len(self.text):
+            return 0
+        else:
+            old = self.text
+            self.del_end(cursor)
+            w = self.content_width
+            self.text = old
+            return w
+
+    def del_end(self,cursor):
+        if cursor == 'end':
+            cursor = len(self.text)
+        self.text = self.text[:cursor]
+
+    def change(self,cursor,char):
+
+        text = self.text
+
+        if cursor == 'end':
+            cursor = len(text)
+
+        self.text = text[:cursor] + char + text[cursor:]
+
+    def modif(self,cursor,key):
+
+        text = self.text
+
+        if cursor == 'end':
+            cursor = len(text)
+
+        if key == 'back':
+            if cursor != 0:
+                self.text = text[:cursor-1] + text[cursor:]
+
+    def get_xy(self):
+        return self.x,self.y
+
+### SEIZE
+
+class Seize():
+
+    # init
+
+    def __init__(self,name, x=0, y=0, batch=None, group=None):
+
+        self.name = name
+        self.cursor = [0,"end"]
+
+        self.x = x
+        self.y = y
+        self.padding = 10
+
+        self.batch = batch
+        self.group = group
+
+        self.font_name={'normal':'arial','title':'arial','subtitle':'arial'}
+        self.font_size={'normal':16,'title':32,'subtitle':24}
+
+        self.cont = [MyLabel(font_name=self.font_name['normal'],font_size=self.font_size['normal'],color=(255,255,255,255), x=x, y=y, batch=self.batch, group=self.group)]
+        self.summary = ['normal']
+
+        #self.comment = [...]
+
+    # main fonctions
+
+    def motion(self,motion):
+
+        if motion == 'right':
+            if self.cursor[1] == -1:
+                self.cursor[1] = 'end'
+            elif self.cursor[1] != 'end':
+                self.cursor[1]+=1
+            else:
+                final_line = self.cursor[0] != len(self.cont)-1
+                self.motion('down')
+                if final_line:
+                    self.motion('begin')
+
+        elif motion == 'left':
+            endup = False
+            if self.cursor[1] == 'end':
+                if len(self.cont[self.cursor[0]].text) != 0:
+                    self.cursor[1] = -1
+                else:
+                    endup = True
+            elif self.cursor[1] != -len(self.cont[self.cursor[0]].text):
+                self.cursor[1]-=1
+            else:
+                endup = True
+
+            if endup:
+                first_line = self.cursor[0] != 0
+                self.motion('up')
+                if first_line:
+                    self.motion('end')
+
+        elif motion == 'up':
+            self.cursor[0] -= 1
+            if self.cursor[0] < 0:
+                self.cursor[0] = 0
+            else:
+                cur = self.convert_cursor_end_to_beg(self.cursor[0]+1,self.cursor[1])
+                self.cursor[1] = self.convert_cursor_beg_to_end(self.cursor[0],cur)
+                if self.cursor[1] >= 0:
+                    self.cursor[1] = 'end'
+
+                """if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
+                    self.motion('begin')"""
+
+        elif motion == 'down':
+
+            self.cursor[0] += 1
+            if self.cursor[0] >= len(self.cont):
+                self.cursor[0] = len(self.cont) -1
+            else:
+                cur = self.convert_cursor_end_to_beg(self.cursor[0]-1,self.cursor[1])
+                self.cursor[1] = self.convert_cursor_beg_to_end(self.cursor[0],cur)
+                if self.cursor[1] >= 0:
+                    self.cursor[1] = 'end'
+                """if self.cursor[1] < -len(self.cont[self.cursor[0]].text):
+                    self.motion('begin')"""
+
+        elif motion == 'begin':
+            self.cursor[1]=-len(self.cont[self.cursor[0]].text)
+            if self.cursor[1] == 0:
+                self.cursor[1] = 'end'
+
+        elif motion == 'end':
+            self.cursor[1] = 'end'
+
+    def modif(self,key):
+
+        if key in ['back']:
+            if self.convert_cursor_end_to_beg(*self.cursor) > 0:
+                self.cont[self.cursor[0]].modif(self.cursor[1],key)
+            elif self.cursor[0] != 0:
+                if self.len_seize() == 0 :
+                    self.cont[self.cursor[0]].delete()
+                    self.cont = self.cont[:self.cursor[0]] + self.cont[self.cursor[0]+1:]
+                    self.cursor = [self.cursor[0]-1,'end']
+                else:
+                    self.change(self.cont[self.cursor[0]].text,(self.cursor[0]-1,'end'))
+                    self.cont[self.cursor[0]].delete()
+                    self.cont = self.cont[:self.cursor[0]] + self.cont[self.cursor[0]+1:]
+                    self.cursor[0]-=1
+
+        elif key == 'enter':
+
+            newtext = self.cont[self.cursor[0]].get_end(self.cursor[1])
+            self.cont[self.cursor[0]].del_end(self.cursor[1])
+
+            self.add_Lab(self.cursor[0]+1,newtext)
+            self.motion('down')
+            self.motion('begin')
+
+        elif key == 'delete':
+            if self.cursor != [len(self.cont)-1,'end']:
+                self.motion('right')
+                self.modif('back')
+
+    def change(self,char,cur=None):
+        if cur == None:
+            self.cont[self.cursor[0]].change(self.cursor[1],char)
+        else:
+            self.cont[cur[0]].change(cur[1],char)
+
+    # one time fonctions
+
+    def add_Lab(self,cursor,text='',style='normal'):
+
+        y = self.y
+        for i in range(cursor):
+            y = y - self.font_size[self.summary[i]] - self.padding
+
+        labs = self.cont
+        self.cont = labs[:cursor] + [MyLabel(text=text,font_name=self.font_name[style],font_size=self.font_size[style], \
+                            color=(255,255,255,255), x=self.x, y=y, batch=self.batch, group=self.group)] + labs[cursor:]
+
+        self.summary = self.summary[:cursor] + [style] + self.summary[cursor:]
+
+        for i in range(cursor+1,len(self.cont)):
+            self.cont[i].y = self.cont[i].y - self.font_size[style] - self.padding
+
+    def move(self,pos):
+        self.x,self.y = pos
+        self.refresh()
+
+    def movedx(self,vec):
+        self.x,self.y = self.x+vec[0],self.y+vec[1]
+        self.refresh()
+
+    def adapt_xy(self,oldS,S):
+        self.x *= S[0]/oldS[0]
+        self.y *= S[1]/oldS[1]
+
+    # refresh
+
+    def refresh(self,anchor=(0,0)):
+
+        y = self.y + anchor[1]
+        #print(self.x,self.y)
+
+        for i in range(len(self.cont)):
+            self.cont[i].y = y
+            self.cont[i].x = self.x + anchor[0]
+            y = y - self.font_size[self.summary[i]] - self.padding
+
+    # getters
+
+    def convert_cursor_end_to_beg(self,line,cur):
+        if cur == 'end':
+            cur = 0
+        return len(self.cont[line].text) + cur
+
+    def convert_cursor_beg_to_end(self,line,cur):
+        if cur == 'end':
+            cur = 0
+        return -len(self.cont[line].text) + cur
+
+    def len_seize(self):
+        return len(self.cont[self.cursor[0]].text)
+
+
+
+### CURSOR
+
+class Cursor(pyglet.sprite.Sprite):
+
+    def __init__(self,id_label,x=0,y=0,group=None,batch=None):
+
+        tman = TextureManager()
+        text = tman.add_Texture(1,1)
+
+        super(Cursor,self).__init__(text,x,y,batch=batch,group=group)
+        self.sz = id_label
+
+        self.cmd = pyglet.text.Label('',font_name='arial',font_size=16,group=group, \
+                        batch=batch,color=(255,255,255,255),anchor_y='top')
+
+    def refresh(self,seize,S,anchor=(0,0)):
+
+        self.cmd_refresh(seize,S)
+        self.update(scale_x=2,scale_y=seize.font_size[seize.summary[seize.cursor[0]]])
+
+        y = seize.y + anchor[1]
+        #print(seize.x,seize.y)
+
+        for i in range(seize.cursor[0]):
+            y = y - seize.font_size[seize.summary[i]] - seize.padding
+        self.y = y
+
+        self.x = seize.x + anchor[0] + seize.cont[seize.cursor[0]].get_width(seize.cursor[1])
+
+    def cmd_refresh(self,seize,S):
+
+        self.cmd.x,self.cmd.y = 20,S[1] -60
+        self.cmd.text = 'cursor '+str(seize.name)+' : '+str(seize.cursor)
+
+
+### SPRITES, FILTERS, ...
+
+class TextureManager():
+
+    def __init__(self):
+
+        self.textures = []
+
+    def add_Texture(self,w,h,color=(255,255,255,255)):
+
+        pattern = pyglet.image.SolidColorImagePattern(color)
+        return pattern.create_image(w,h)
+
+class SpriteManager():
+
+    def __init__(self,batch):
+
+        self.sprites = []
+        self.batch= batch
+
+    def add_Spr(self,text,x,y,group):
+
+        return pyglet.sprite.Sprite(text,x,y,batch=self.batch,group=group)
+
+
+
+ _newfile_ :Z:\DESKTOP\CODING\seize/src/utils.py
+
+
+
+
+
+
+import random,os,ctypes,time
+from ctypes import windll, Structure, c_long, byref
+from math import *
+#from win32gui import GetWindowRect, GetForegroundWindow, GetWindowText
+
+
+class POINT(Structure):
+    _fields_ = [("x", c_long), ("y", c_long)]
+
+## partie SCREEN
+
+def get_screen_size():
+    user32 = ctypes.windll.user32
+    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+
+
+## partie random
+
+def choice(thg):
+
+    if type(thg) == type({}):
+        return choice(list(thg.keys()))
+        #print(thg.keys())
+    else:
+        return random.choice(thg)
+
+def randmultint(n,a,b=None): #returns n differents numbers between a and b-1
+
+    if b == None:
+        return randmultint(n,0,a-1)
+    else:
+        t = []
+        while len(t) < n:
+            new = random.randint(a,b-1)
+            while new in t:
+                new = random.randint(a,b-1)
+            t.append(new)
+        return t
+
+
+def get_key_from_value(d,v,s=[]): # v valeur seule, d dic ou tab
+
+    if type(d) == type({}):
+        for key,val in d.items():
+            if type(val) != type({}) and type(val) != type([]):
+                if v == val:
+                    return s+[key]
+            else:
+                ns = get_key_from_value(val,v,s+[key])
+                if ns != None:
+                    return ns
+
+    elif type(d) == type([]):
+        for key in range(len(d)):
+            val = d[key]
+            if type(val) != type({}) and type(val) != type([]):
+                #print(val)
+                if v == val:
+                    return s+[key]
+            else:
+                ns = get_key_from_value(val,v,s+[key])
+                if ns != None:
+                    return ns
+
+    return None
+
+def getMousePos():
+    pt = POINT()
+    windll.user32.GetCursorPos(byref(pt))
+    return pt.x,pt.y
+
+def module(x,y):
+    return sqrt(x**2+y**2)
+
+def int_rd(dec):
+    if dec < int(dec)+0.5:
+        return int(dec)
+    else:
+        return ceil(dec)
+
+def sign(n):
+    if n==0:
+        return 0
+    else:
+        return n//abs(n)
+
+def rangef(a,b,d=1):
+
+    res = []
+    if b > a:
+        while b>a:
+            res.append(a)
+            a+=d
+    else:
+        while abs(b-a)>0:
+            res.append(a)
+            a+=d
+
+    return res
+
+ids = 1112
+
+def get_id(key):
+
+    global ids
+
+    id = ''+key
+    id+=str(ids)
+    ids+=1
+    return id
+
+def mycopy(thg):
+
+    if type(thg) == type([]):
+
+        res = []
+
+        for i in thg:
+            res.append(mycopy(i))
+
+        return res
+
+    else:
+
+        return thg
+
+def truncate(f, n=3):
+    '''Truncates/pads a float f to n decimal places without rounding'''
+    s = '{}'.format(f)
+    if 'e' in s or 'E' in s:
+        return '{0:.{1}f}'.format(f, n)
+    i, p, d = s.partition('.')
+    return '.'.join([i, (d+'0'*n)[:n]])
+
+### PARTIE AUTO-SAUVEGARDE
+
+def save_files(bigpath,path = ['/.','/src'],save_path = '/autosav/'):
+
+    autosav = ''
+
+    for chem in path:
+        #print('path',bigpath+chem,':',os.listdir(bigpath+chem))
+        try:
+            for file in os.listdir(bigpath+chem):
+                if file[-3:] == '.py':
+                    autosav += '\n\n\n _newfile_ :' + bigpath+chem+'/'+file + '\n\n\n'
+                    with open(bigpath+chem+'/'+file,'r') as f:
+                        autosav += f.read()
+        except :
+            jsghd=0
+            #print('no path',bigpath+chem,':',os.listdir(bigpath+chem))
+
+    version = ['alpha',10001]
+
+    try:
+        with open(bigpath+save_path+'version','r') as f:
+            tab = f.read().split('_')
+            version = [tab[0],int(tab[1])*10000+int(tab[2])]
+        version[1]+=1
+        with open(bigpath+save_path+'version','w') as f:
+            f.write(version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:])
+    except:
+        os.makedirs(bigpath+save_path)
+        with open(bigpath+save_path+'version','w') as f:
+            f.write(version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:])
+
+    with open(bigpath+save_path+'saved_'+version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:]+'.savd','w') as f:
+        f.write(autosav)
+
+    print('files saved, version',version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:])
+
+def recup_files(path2):
+
+    currentpath = path2.split('\\')[-1]
+    currentpath = currentpath.split('/')[-1]
+    currentpath = path2[:(len(path2)-len(currentpath))]
+
+    all =[]
+    with open(path2,'r') as f:
+        all = f.readlines()
+
+    files = {}
+    titles = [0]
+    file = []
+    for line in all:
+        if '_newfile_ :' in line and line[-4:] == '.py\n':
+            name = line[len('_newfile_ '):]
+            names = name.split('\\')
+            names2 = []
+
+            for nam in names:
+                for naam in nam.split('/'):
+                    names2.append(naam)
+                    name = ('/').join(names2[-2:])
+
+            files[titles[-1]] = file
+            titles.append(name[:-1])
+            file = []
+        else:
+            file.append(line)
+
+    files[titles[-1]] = file
+
+    for name in files:
+        print(name)
+        if name != 0:
+            try:
+                with open(currentpath+name,'w') as f:
+                    for line in files[name]:
+                        f.write(line)
+            except :
+                file = name.split('/')[0]
+                os.makedirs(currentpath+file)
+                with open(currentpath+name,'w') as f:
+                    for line in files[name]:
+                        f.write(line)
+
+def get_version(bigpath,save_path = '/autosav/'):
+    version = ['alpha',10001]
+
+    try:
+        with open(bigpath+save_path+'version','r') as f:
+            tab = f.read().split('_')
+            version = [tab[0],int(tab[1])*10000+int(tab[2])]
+    except:
+        a=0
+    return version[0]+'_'+str(version[1])[0]+'_'+str(version[1])[-4:]
+
+def compt(bigpath,path = ['/.','/src']):
+
+    long = 0
+
+    for chem in path:
+        try:
+            for file in os.listdir(bigpath+chem):
+                if file[-3:] == '.py':
+                    with open(bigpath+chem+'/'+file,'r') as f:
+                        long += len(f.readlines())
+        except :
+            jsghd=0
+            #print('no path',bigpath+chem,':',os.listdir(bigpath+chem))
+
+    return long

@@ -2,4 +2,7 @@
 
 To do:
 
-- mettre un ancrage au centre de l'écran -> quand on redimensionne la fenetre ça positionne ton seize au centre
+- faire des saves sous un .txt
+- mettre en forme un titre, bloc not sur le téco
+- modes : outil de sélection avec la souris / multiseize
+- gras / italique avec piti boutons

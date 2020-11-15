@@ -89,10 +89,13 @@ class App(pyglet.window.Window):
         self.sz = 0
 
         self.sz_id.append(get_id('sz'))
-        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=self.S[0]/2,y=500)
+
+        self.anchor = self.S[0]*0.5,self.S[1]*0.5
+
+        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=-self.S[0]*0.25,y=self.S[1]*0.25)
 
         ## cursor
-        self.cursor = g.Cursor(self.sz_id[0],100,100,self.group10,self.batch)
+        self.cursor = g.Cursor(self.sz_id[0],group=self.group10,batch=self.batch)
 
         ### PART IV : final launch
 
@@ -217,13 +220,19 @@ class App(pyglet.window.Window):
 
     def refresh(self):
 
-        self.S = self.get_size()
+        if self.get_size() != self.S:
+            for id in self.seize:
+                self.seize[id].adapt_xy(self.S,self.get_size())
+            self.S = self.get_size()
+
+        self.anchor = self.S[0]*0.5,self.S[1]*0.5
 
         ### refresh seize
         for id in self.seize:
-            self.seize[id].refresh()
+            self.seize[id].refresh(self.anchor)
 
-        self.cursor.refresh(self.seize[self.cursor.sz],self.S)
+
+        self.cursor.refresh(self.seize[self.cursor.sz],self.S,self.anchor)
 
     def gameloop(self,dt):
 
