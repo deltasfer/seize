@@ -1,6 +1,6 @@
 
 
-To do:
+**To do:**
 
 - faire des saves sous un .txt
 - plusieurs labels par ligne
