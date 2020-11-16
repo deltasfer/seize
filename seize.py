@@ -88,11 +88,12 @@ class App(pyglet.window.Window):
         self.seize = {}
         self.sz = 0
 
-        self.sz_id.append(get_id('sz'))
+        self.anchor = (self.S[0]*0.5,self.S[1]*0.5)
+        self.initial_pos = (-self.S[0]*0.25,self.S[1]*0.25)
 
-        self.anchor = self.S[0]*0.5,self.S[1]*0.5
+        self.addSeize('megaseize',True)
 
-        self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=-self.S[0]*0.25,y=self.S[1]*0.25)
+        #self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=-self.S[0]*0.25,y=self.S[1]*0.25)
 
         ## cursor
         self.cursor = g.Cursor(self.sz_id[0],group=self.group10,batch=self.batch)
@@ -106,6 +107,33 @@ class App(pyglet.window.Window):
 
         pyglet.clock.schedule_interval(self.gameloop,0.0000000000001)
         pyglet.app.run()
+
+    ### ONCE FUNCTIONS
+
+    def addSeize(self,name='jeanluc',main=False,id=None):
+
+        if id == None:
+            id = get_id('sz')
+        self.sz_id.append(id)
+        x,y = self.initial_pos
+        self.seize[id] = g.Seize(name,group=self.group0,batch=self.batch,x=x,y=y)
+        if main:
+            self.sz = len(self.seize) - 1
+
+    def open_file(self,file):
+
+        self.addSeize(file,True)
+
+    def save_file(self,file,idsz=None):
+
+        if idsz == None: # on sauvegarde le fichier en cours
+            idsz = self.sz_id[self.sz]
+
+        if 'saves' not in os.listdir(self.path):
+            os.makedirs(self.path+'\\saves')
+
+        with open(self.path+'\\saves\\'+file+'.txt','w') as f:
+            f.write(self.seize[idsz].get_text())
 
     def get_current_screen(self):
 
@@ -266,6 +294,9 @@ class App(pyglet.window.Window):
 
 
         else:
+
+            self.save_file('test',self.sz_id[self.sz])
+
             print('\n\nNumber of lines :',compt(self.path))
             save_files(self.path)
 

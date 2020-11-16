@@ -250,6 +250,14 @@ class Seize():
     def len_seize(self):
         return len(self.cont[self.cursor[0]].text)
 
+    def get_text(self):
+
+        full_text = ''
+        for lab in self.cont:
+            full_text += lab.text+'\n'
+        print(full_text)
+        return full_text
+
 
 
 ### CURSOR
