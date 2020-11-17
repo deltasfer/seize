@@ -255,7 +255,7 @@ class Seize():
         full_text = ''
         for lab in self.cont:
             full_text += lab.text+'\n'
-        print(full_text)
+        #print(full_text)
         return full_text
 
 

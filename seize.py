@@ -23,7 +23,7 @@ class App(pyglet.window.Window):
 
     def __init__(self):
 
-        super(App, self).__init__()
+        super(App, self).__init__(file_drops=True,resizable=True)#,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
 
         self.path = CURRENT_PATH
 
@@ -38,6 +38,7 @@ class App(pyglet.window.Window):
         used_screen = self.get_current_screen()
         self.size_fullscr = [used_screen.width,used_screen.height]
         self.S = self.get_size()
+        #self.maximize()
 
     def init(self):
 
@@ -160,8 +161,9 @@ class App(pyglet.window.Window):
             if self.fscreen:
                 self.fscreen = False
                 self.set_fullscreen(False)
-                self.set_size(self.size_scr[0],self.size_scr[1])
+                self.set_size(*self.size_scr)
             else:
+                self.size_scr = self.get_size()
                 self.fscreen = True
                 used_screen=self.get_current_screen()
                 self.set_fullscreen(screen=used_screen)
@@ -239,6 +241,10 @@ class App(pyglet.window.Window):
                     self.seize[self.sz_id[self.sz]].modif(modif_dic[key])
 
 
+        # label fps
+        self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
+        self.label_fps.text = 'FPS : '+str(int(pyglet.clock.get_fps()))
+
     ### GAMELOOP
 
     def draw(self):
@@ -272,8 +278,7 @@ class App(pyglet.window.Window):
                             batch=self.batch,color=(255,255,255,255),anchor_y='top')
 
         self.nb+=1
-        self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
-        self.label_fps.text = 'FPS : '+str(int(pyglet.clock.get_fps()))
+
 
         #print(self.S)
 
