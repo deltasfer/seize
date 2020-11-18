@@ -71,10 +71,12 @@ class Seize():
 
     # init
 
-    def __init__(self,name, x=0, y=0, batch=None, group=None):
+    def __init__(self,name,id, x=0, y=0, batch=None, group=None,initial=''):
 
         self.name = name
         self.cursor = [0,"end"]
+
+        self.id = id
 
         self.x = x
         self.y = y
@@ -86,8 +88,14 @@ class Seize():
         self.font_name={'normal':'arial','title':'arial','subtitle':'arial'}
         self.font_size={'normal':16,'title':32,'subtitle':24}
 
-        self.cont = [MyLabel(font_name=self.font_name['normal'],font_size=self.font_size['normal'],color=(255,255,255,255), x=x, y=y, batch=self.batch, group=self.group)]
-        self.summary = ['normal']
+        self.cont = []
+        self.summary = []
+
+        if initial == '':
+            self.cont = [MyLabel(font_name=self.font_name['normal'],font_size=self.font_size['normal'],color=(255,255,255,255), x=x, y=y, batch=self.batch, group=self.group)]
+            self.summary = ['normal']
+        else:
+            self.load_text(initial)
 
         #self.comment = [...]
 
@@ -196,6 +204,17 @@ class Seize():
 
     # one time fonctions
 
+    def load_text(self,text=''):
+
+        text = text.split('\n')
+        for i in range(len(text)):
+            self.load_line(text[i],i)
+
+    def load_line(self,line='',cursor=0):
+
+        ## là on mettra les séparations pour mettre en gras, italique, etc..
+        self.add_Lab(cursor,line)
+
     def add_Lab(self,cursor,text='',style='normal'):
 
         y = self.y
@@ -223,7 +242,17 @@ class Seize():
         self.x *= S[0]/oldS[0]
         self.y *= S[1]/oldS[1]
 
+
     # refresh
+
+    def hide(self,hide=True):
+
+        for lab in self.cont:
+            if hide and (lab.color[3] != 0):
+                lab.color = [*lab.color[:3],0]
+            elif (not hide)  and (lab.color[3] == 0):
+                lab.color = [*lab.color[:3],255]
+
 
     def refresh(self,anchor=(0,0)):
 
@@ -258,19 +287,23 @@ class Seize():
         #print(full_text)
         return full_text
 
+    # byebye functions
+
+    def delete(self):
+        for lab in self.cont:
+            lab.delete()
 
 
 ### CURSOR
 
 class Cursor(pyglet.sprite.Sprite):
 
-    def __init__(self,id_label,x=0,y=0,group=None,batch=None):
+    def __init__(self,x=0,y=0,group=None,batch=None):
 
         tman = TextureManager()
         text = tman.add_Texture(1,1)
 
         super(Cursor,self).__init__(text,x,y,batch=batch,group=group)
-        self.sz = id_label
 
         self.cmd = pyglet.text.Label('',font_name='arial',font_size=16,group=group, \
                         batch=batch,color=(255,255,255,255),anchor_y='top')

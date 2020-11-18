@@ -1,6 +1,6 @@
 
 
-import pyglet
+import pyglet,json
 import pyglet.gl as gl
 from pyglet.window import key
 from src.utils import *
@@ -23,13 +23,19 @@ class App(pyglet.window.Window):
 
     def __init__(self):
 
-        super(App, self).__init__(file_drops=True,resizable=True)#,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
+        super(App, self).__init__(file_drops=True,resizable=True,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
 
+
+        ## paths
         self.path = CURRENT_PATH
+        self.config_path = '\\config\\'
+        self.saves_path = '\\saves\\'
+
+
+        ## size window
 
         self.size_scr = 1000,800
         self.set_size(self.size_scr[0],self.size_scr[1])
-
         self.fscreen = False
 
         ## screens
@@ -38,16 +44,20 @@ class App(pyglet.window.Window):
         used_screen = self.get_current_screen()
         self.size_fullscr = [used_screen.width,used_screen.height]
         self.S = self.get_size()
-        #self.maximize()
+
+        self.maximize()
 
     def init(self):
 
         ### PART I : several thgs
 
-        self.action = 'editing'
+        self.mode = 'showing'
+
+        self.modes = ['showing','editing']
 
         """
-        actions:
+        modes:
+        -showing
         -editing
         """
 
@@ -92,12 +102,14 @@ class App(pyglet.window.Window):
         self.anchor = (self.S[0]*0.5,self.S[1]*0.5)
         self.initial_pos = (-self.S[0]*0.25,self.S[1]*0.25)
 
-        self.addSeize('megaseize',True)
+
+        self.open_config()
+        #self.addSeize('megaseize',True)
 
         #self.seize[self.sz_id[self.sz]] = g.Seize('megaseize',group=self.group0,batch=self.batch,x=-self.S[0]*0.25,y=self.S[1]*0.25)
 
         ## cursor
-        self.cursor = g.Cursor(self.sz_id[0],group=self.group10,batch=self.batch)
+        self.cursor = g.Cursor(group=self.group10,batch=self.batch)
 
         ### PART IV : final launch
 
@@ -109,32 +121,18 @@ class App(pyglet.window.Window):
         pyglet.clock.schedule_interval(self.gameloop,0.0000000000001)
         pyglet.app.run()
 
+
     ### ONCE FUNCTIONS
 
-    def addSeize(self,name='jeanluc',main=False,id=None):
+    def addSeize(self,name='jeanluc',main=False,id=None,initial=''):
 
         if id == None:
             id = get_id('sz')
         self.sz_id.append(id)
         x,y = self.initial_pos
-        self.seize[id] = g.Seize(name,group=self.group0,batch=self.batch,x=x,y=y)
+        self.seize[id] = g.Seize(name,id,group=self.group0,batch=self.batch,x=x,y=y,initial=initial)
         if main:
             self.sz = len(self.seize) - 1
-
-    def open_file(self,file):
-
-        self.addSeize(file,True)
-
-    def save_file(self,file,idsz=None):
-
-        if idsz == None: # on sauvegarde le fichier en cours
-            idsz = self.sz_id[self.sz]
-
-        if 'saves' not in os.listdir(self.path):
-            os.makedirs(self.path+'\\saves')
-
-        with open(self.path+'\\saves\\'+file+'.txt','w') as f:
-            f.write(self.seize[idsz].get_text())
 
     def get_current_screen(self):
 
@@ -144,6 +142,133 @@ class App(pyglet.window.Window):
             if (x >= scr.x and x <= scr.x + scr.width) and (y >= scr.y and y <= scr.y + scr.height):
                 return scr
         return self.screens[0]
+
+    def change_mode(self,mode='editing'):
+
+        if mode == 'editing':
+            for id in self.seize:
+                if id != self.sz_id[self.sz]:
+                    self.seize[id].hide()
+                else:
+                    self.seize[id].hide(False)
+        elif mode == 'showing':
+            for id in self.seize:
+                self.seize[id].hide(False)
+        self.mode = mode
+
+    def roll(self):
+        self.sz += 1
+        if self.sz >= len(self.sz_id):
+            self.sz = 0
+        if self.mode == 'editing':
+            self.change_mode('editing')
+        if len(self.sz_id) > 0:
+            print('--'+self.seize[self.sz_id[self.sz]].name+' main--')
+
+
+    #opening/saving
+    def open_file(self,file,main=True):
+
+        text = ''
+
+        if file +'.txt' in os.listdir(self.path + self.saves_path):
+            with open(self.path + self.saves_path + file +'.txt','r') as f:
+                text = f.read()
+            if text[-1] == '\n':
+                text = text[:-1]
+
+        self.addSeize(file,main,initial=text)
+
+        print(file + ' opened')
+
+    def close_file(self,id=None):
+
+        if id == None: # on ferme le fichier en cours
+            id = self.sz_id[self.sz]
+        self.save_file(id)
+        self.seize[id].delete()
+        del self.seize[id]
+        self.sz_id.remove(id)
+        self.roll()
+
+    def save_file(self,id=None):
+
+        if id == None: # on sauvegarde le fichier en cours
+            id = self.sz_id[self.sz]
+
+        file=self.seize[id].name
+
+        #print('')
+        if self.saves_path[1:-1] not in os.listdir(self.path):
+            os.makedirs(self.path+self.saves_path)
+
+        with open(self.path+self.saves_path+file+'.txt','w') as f:
+            f.write(self.seize[id].get_text())
+
+        print(file + ' saved')
+
+    def open_config(self):
+
+        print('\n----------\n')
+
+        if self.config_path[1:-1] not in os.listdir(self.path):
+            os.makedirs(self.path + self.config_path)
+
+        #self.configg= []
+
+        if 'config' in os.listdir(self.path + self.config_path):
+
+            print('opening config file')
+
+            with open(self.path + self.config_path +'config','r') as f:
+                try:
+                    self.configg= json.load(f)
+                except:
+                    self.configg = []
+        else:
+            print('confing file lost in the nean...')
+            self.configg = []
+
+        if self.configg != []:
+            for file in self.configg:
+                name,main = file
+                if name+'.txt' in os.listdir(self.path+self.saves_path):
+                    self.open_file(name,main)
+        else:
+            self.open_file('megaseize')
+
+        print('\n----------\n')
+
+    def save_config(self):
+
+        if self.config_path[1:-1] not in os.listdir(self.path):
+            os.makedirs(self.path + self.config_path)
+
+        self.update_config()
+        for id in self.seize:
+            self.save_file(id)
+
+        with open(self.path + self.config_path +'config','w') as f:
+            json.dump(self.configg,f)
+
+        print('config file saved')
+        print('\n----------\n')
+
+    def update_config(self):
+
+        if self.config_path[1:-1] not in os.listdir(self.path):
+            os.makedirs(self.path + self.config_path)
+
+        self.configg= []
+
+        for id in self.seize:
+            tab = [self.seize[id].name]
+            if self.sz_id[self.sz] == id:
+                tab.append(True)
+            else:
+                tab.append(False)
+            self.configg.append(tab)
+
 
     ### PYGLET EVENTS
 
@@ -174,7 +299,15 @@ class App(pyglet.window.Window):
         if self.keys[key.LCTRL]:
 
             if symbol == key.K:
-                self.draww = not self.draww
+                yeye,mode = 0,''
+                for i in range(len(self.modes)):
+                    if self.modes[i] == self.mode:
+                        yeye = i
+                if yeye +1 == len(self.modes):
+                    mode = self.modes[0]
+                else:
+                    mode = self.modes[yeye+1]
+                self.change_mode(mode)
 
             elif symbol == key.F:
                 if self.label_fps.color[3] == 0:
@@ -182,23 +315,38 @@ class App(pyglet.window.Window):
                 elif self.label_fps.color[3] == 255:
                     self.label_fps.color = [*self.label_fps.color[:3],0]
 
-        if self.keys[key.LSHIFT]:
+            elif symbol == key.N:
+                self.open_file(input('new file name :'))
 
-            if symbol in up_dic:
-                self.seize[self.sz_id[self.sz]].change(up_dic[symbol])
-                self.keys_pressed[symbol] = [time.time(),"up"]
+            elif symbol == key.TAB:
+                self.roll()
+
+            elif symbol == key.S:
+                self.save_file()
+
+            elif symbol == key.W:
+                self.close_file()
 
         else:
-            if symbol in low_dic:
-                self.seize[self.sz_id[self.sz]].change(low_dic[symbol])
-                self.keys_pressed[symbol] = [time.time(),"low"]
 
-        if symbol in motion_dic:
-            self.seize[self.sz_id[self.sz]].motion(motion_dic[symbol])
-            self.keys_pressed[symbol] = [time.time(),"motion"]
-        elif symbol in modif_dic:
-            self.seize[self.sz_id[self.sz]].modif(modif_dic[symbol])
-            self.keys_pressed[symbol] = [time.time(),"modif"]
+            if self.keys[key.LSHIFT]:
+
+                if symbol in up_dic:
+                    self.seize[self.sz_id[self.sz]].change(up_dic[symbol])
+                    self.keys_pressed[symbol] = [time.time(),"up"]
+
+            else:
+                if symbol in low_dic:
+                    self.seize[self.sz_id[self.sz]].change(low_dic[symbol])
+                    self.keys_pressed[symbol] = [time.time(),"low"]
+
+            if symbol in motion_dic:
+                self.seize[self.sz_id[self.sz]].motion(motion_dic[symbol])
+                self.keys_pressed[symbol] = [time.time(),"motion"]
+            elif symbol in modif_dic:
+
+                self.seize[self.sz_id[self.sz]].modif(modif_dic[symbol])
+                self.keys_pressed[symbol] = [time.time(),"modif"]
 
     def on_key_release(self,symbol,modifiers):
 
@@ -223,9 +371,6 @@ class App(pyglet.window.Window):
 
     def events(self):
 
-        if self.action == 'playing':
-            print(self.M)
-
         delay_pressed = 0.4
         current_time = time.time()
 
@@ -242,15 +387,19 @@ class App(pyglet.window.Window):
 
 
         # label fps
-        self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
         self.label_fps.text = 'FPS : '+str(int(pyglet.clock.get_fps()))
+        self.label_fps.x,self.label_fps.y = 20,self.S[1] -20
+
+        # label mode
+        self.label_mode.text = self.mode
+        self.label_mode.x,self.label_mode.y = self.S[0]-10,self.S[1] -10
 
     ### GAMELOOP
 
     def draw(self):
 
-        if self.draww:
-            self.batch.draw()
+        self.batch.draw()
+
 
     def refresh(self):
 
@@ -266,7 +415,7 @@ class App(pyglet.window.Window):
             self.seize[id].refresh(self.anchor)
 
 
-        self.cursor.refresh(self.seize[self.cursor.sz],self.S,self.anchor)
+        self.cursor.refresh(self.seize[self.sz_id[self.sz]],self.S,self.anchor)
 
     def gameloop(self,dt):
 
@@ -276,6 +425,8 @@ class App(pyglet.window.Window):
 
             self.label_fps = pyglet.text.Label('',font_name='arial',font_size=32,group=self.group10, \
                             batch=self.batch,color=(255,255,255,255),anchor_y='top')
+            self.label_mode = pyglet.text.Label('',font_name='arial',font_size=8,group=self.group10, \
+                            batch=self.batch,color=(255,255,255,255),anchor_y='top',anchor_x='right')
 
         self.nb+=1
 
@@ -300,7 +451,7 @@ class App(pyglet.window.Window):
 
         else:
 
-            self.save_file('test',self.sz_id[self.sz])
+            self.save_config()
 
             print('\n\nNumber of lines :',compt(self.path))
             save_files(self.path)
