@@ -171,6 +171,9 @@ class App(pyglet.window.Window):
 
         text = ''
 
+        if self.saves_path[1:-1] not in os.listdir(self.path):
+            os.makedirs(self.path + self.saves_path)
+
         if file +'.txt' in os.listdir(self.path + self.saves_path):
             with open(self.path + self.saves_path + file +'.txt','r') as f:
                 text = f.read()
