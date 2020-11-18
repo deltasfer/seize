@@ -23,7 +23,7 @@ class App(pyglet.window.Window):
 
     def __init__(self):
 
-        super(App, self).__init__(file_drops=True,resizable=True,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
+        super(App, self).__init__(file_drops=True,resizable=True)#,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
 
 
         ## paths
@@ -36,7 +36,9 @@ class App(pyglet.window.Window):
 
         self.size_scr = 1000,800
         self.set_size(self.size_scr[0],self.size_scr[1])
+        self.set_minimum_size(275,200)
         self.fscreen = False
+
 
         ## screens
         display = pyglet.canvas.get_display()
