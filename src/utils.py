@@ -138,7 +138,7 @@ def truncate(f, n=3):
 
 ### PARTIE AUTO-SAUVEGARDE
 
-def save_files(bigpath,path = ['/.','/src'],save_path = '/autosav/'):
+def save_code(bigpath,path = ['/.','/src'],save_path = '/autosav/'):
 
     autosav = ''
 

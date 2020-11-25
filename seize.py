@@ -16,14 +16,16 @@ if ' ' in CURRENT_PATH:
 
 """###########################################################"""
 
-class App(pyglet.window.Window):
+class App():
 
 
     ### INIT FUNCTIONS
 
     def __init__(self):
 
-        super(App, self).__init__(file_drops=True,resizable=True)#,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
+        initial_size = 1000,800
+        self.window = pyglet.window.Window(*initial_size,file_drops=True,resizable=True)
+        self.window.push_handlers(self)
 
 
         ## paths
@@ -34,20 +36,21 @@ class App(pyglet.window.Window):
 
         ## size window
 
-        self.size_scr = 1000,800
-        self.set_size(self.size_scr[0],self.size_scr[1])
-        self.set_minimum_size(275,200)
-        self.fscreen = False
+        self.style = 'normal'
+        self.tmp_style = 'maximize'
+
+        self.normal_size = initial_size
+        self.window.set_minimum_size(275,200)
 
 
         ## screens
         display = pyglet.canvas.get_display()
         self.screens = display.get_screens()
-        used_screen = self.get_current_screen()
-        self.size_fullscr = [used_screen.width,used_screen.height]
-        self.S = self.get_size()
+        self.maximized_sizes = {}
+        for scr in self.screens:
+            self.maximized_sizes[scr] = 0,0
 
-        self.maximize()
+        self.S = self.window.get_size()
 
     def init(self):
 
@@ -66,7 +69,7 @@ class App(pyglet.window.Window):
 
         ## keys
         self.keys = key.KeyStateHandler()
-        self.push_handlers(self.keys)
+        self.window.push_handlers(self.keys)
 
         self.keys_pressed = {} # example {key.A:[145124 sec,"modif"]}
 
@@ -138,12 +141,28 @@ class App(pyglet.window.Window):
 
     def get_current_screen(self):
 
-        x,y = self.get_location()
+        x,y = self.window.get_location()
         for i in range(len(self.screens)):
             scr = self.screens[i]
             if (x >= scr.x and x <= scr.x + scr.width) and (y >= scr.y and y <= scr.y + scr.height):
                 return scr
         return self.screens[0]
+
+    def load_maximized_sizes(self):
+
+        ## return the potential sizes of maximized window for each screen
+
+        self.maximized_sizes = {}
+
+        for screen in self.screens:
+
+            windo = pyglet.window.Window(resizable=True,screen=screen,visible=False)
+            #self.window.set_location(screen.x+1,screen.y+1)
+            windo.maximize()
+            #os.system('pause')
+            self.maximized_sizes[screen] = windo.get_size()
+            windo.close()
+
 
     def change_mode(self,mode='editing'):
 
@@ -166,6 +185,59 @@ class App(pyglet.window.Window):
             self.change_mode('editing')
         if len(self.sz_id) > 0:
             print('--'+self.seize[self.sz_id[self.sz]].name+' main--')
+
+    def change_size(self,style='maximize'):
+
+        if self.style != style:
+            self.tmp_style = self.style
+
+            if self.style == 'borderless':
+
+                newwindow = pyglet.window.Window(file_drops=True,resizable=True)
+                newwindow.push_handlers(self)
+                newwindow.push_handlers(self.keys)
+                self.window.close()
+                self.window = newwindow
+
+                ## size window
+                self.window.set_minimum_size(275,200)
+                self.style = style
+
+                self.window.set_size(*self.normal_size)
+
+                if style == 'maximize':
+                    self.window.maximize()
+
+            elif style == 'borderless':
+
+                if self.style == 'normal':
+                    self.normal_size = self.window.get_size()
+
+                self.style = style
+
+
+                old_pos = self.window.get_location()
+
+                newwindow = pyglet.window.Window(file_drops=True,resizable=True,style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
+                newwindow.push_handlers(self)
+                newwindow.push_handlers(self.keys)
+                self.window.close()
+                self.window = newwindow
+                self.window.set_location(*old_pos)
+                self.window.set_minimum_size(275,200)
+
+
+                self.window.maximize()
+
+            elif style == 'maximize' and self.style == 'normal':
+
+                self.style = style
+                self.window.maximize()
+
+            elif style == 'normal' and self.style == 'maximize':
+                self.window.set_size(*self.normal_size)
+                self.style = style
+
 
 
     #opening/saving
@@ -198,6 +270,7 @@ class App(pyglet.window.Window):
 
     def save_file(self,id=None):
 
+        #print(file + ' saved')
         if id == None: # on sauvegarde le fichier en cours
             id = self.sz_id[self.sz]
 
@@ -279,25 +352,17 @@ class App(pyglet.window.Window):
 
     def on_key_press(self,symbol,modifiers):
 
-        #print(symbol)
-
         ## controls globaux
 
         if symbol == key.ESCAPE:
             self.playing = False
 
         elif symbol == key.F11:
-            #print(self.fscreen)
-            if self.fscreen:
-                self.fscreen = False
-                self.set_fullscreen(False)
-                self.set_size(*self.size_scr)
+
+            if self.style == 'borderless':
+                self.change_size(self.tmp_style)
             else:
-                self.size_scr = self.get_size()
-                self.fscreen = True
-                used_screen=self.get_current_screen()
-                self.set_fullscreen(screen=used_screen)
-                self.size_fullscr = [used_screen.width,used_screen.height]
+                self.change_size('borderless')
 
         ## controls avec et sans modifieurs
 
@@ -372,6 +437,31 @@ class App(pyglet.window.Window):
 
         self.seize[self.sz_id[self.sz]].movedx((dx,dy))
 
+    def on_close(self):
+
+        self.save_config()
+
+        print('\n\nNumber of lines :',compt(self.path))
+        save_code(self.path)
+
+    def on_resize(self,width,height):
+
+        #print('ahhhh on me resuize',width,height,self.maximized_sizes[self.get_current_screen()])
+
+        max_size = self.maximized_sizes[self.get_current_screen()]
+        if (width,height) == self.maximized_sizes[self.get_current_screen()] and self.style != 'maximize' : #si la taille correspond à la taille de maximized
+            #print('ouee')
+            self.tmp_style = self.style
+            self.style = 'maximize'
+
+        elif width < max_size[0] and height < max_size[1] and self.style != 'normal' : #si la taille correspond à la taille de maximized
+            self.tmp_style = self.style
+            self.style = 'normal'
+            self.normal_size = width,height
+
+        elif self.style == 'normal':
+            self.normal_size = width,height
+
     ### EVENTS
 
     def events(self):
@@ -408,10 +498,10 @@ class App(pyglet.window.Window):
 
     def refresh(self):
 
-        if self.get_size() != self.S:
+        if self.window.get_size() != self.S:
             for id in self.seize:
-                self.seize[id].adapt_xy(self.S,self.get_size())
-            self.S = self.get_size()
+                self.seize[id].adapt_xy(self.S,self.window.get_size())
+            self.S = self.window.get_size()
 
         self.anchor = self.S[0]*0.5,self.S[1]*0.5
 
@@ -421,6 +511,8 @@ class App(pyglet.window.Window):
 
 
         self.cursor.refresh(self.seize[self.sz_id[self.sz]],self.S,self.anchor)
+
+        #print(self.style,self.normal_size)
 
     def gameloop(self,dt):
 
@@ -433,10 +525,13 @@ class App(pyglet.window.Window):
             self.label_mode = pyglet.text.Label('',font_name='arial',font_size=8,group=self.group10, \
                             batch=self.batch,color=(255,255,255,255),anchor_y='top',anchor_x='right')
 
+            self.load_maximized_sizes()
+            print('screens initialised ->',self.maximized_sizes)
+
         self.nb+=1
 
 
-        #print(self.S)
+        #print(self.playing)
 
         if self.playing:
 
@@ -445,23 +540,19 @@ class App(pyglet.window.Window):
 
             gl.glClearColor(1/35,1/35,1/35,1)
             ### CLEAR
-            self.clear()
+            self.window.clear()
 
             ### REFRESH
             self.refresh()
 
             ### DRAW
             self.draw()
+            #print("aaaaaaah")
 
 
         else:
 
-            self.save_config()
-
-            print('\n\nNumber of lines :',compt(self.path))
-            save_files(self.path)
-
-            self.close()
+            self.on_close()
 
 
 
