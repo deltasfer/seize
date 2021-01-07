@@ -377,6 +377,7 @@ class Button():
 
         self.img = tman.add_Texture(*box.wh,color)
         self.img_hover = tman.add_Texture(*box.wh,hover)
+        self.img_pressed = tman.add_Texture(*box.wh,c.red)
 
         self.skin = pyglet.sprite.Sprite(self.img,*self.box.xy,batch=batch,group=group)
 
@@ -392,12 +393,23 @@ class Button():
             self.hover = False
             self.skin.image = self.img
 
+    def ipressed(self):
+        self.skin.image = self.img_pressed
+
+    def irealeased(self):
+        self.skin.image = self.img
+        self.function()
+
     def update(self,x,y):
 
         if x != self.skin.x:
             self.skin.x = x
+            self.box.x = x
         if y != self.skin.y:
             self.skin.y = y
+            self.box.y = y
+
+    ## oeoe
 
     def _set_xy(self,pos):
         self.skin.x,self.skin.y = pos
@@ -415,9 +427,14 @@ class Button():
     h = property(_h)
     w = property(_w)
 
+    def _xywh(self):
+        return self.box.xywh
+
+    xywh = property(_xywh)
+
 class ButtonBar():
 
-    def __init__(self,xy,S,buttons,style="w",padding = 50,sec_padding=10,align="right",color=c.air,batch=None,group=None,groupbutt=None):
+    def __init__(self,xy,S,buttons,style="w",padding = 20,sec_padding=10,align="right",color=c.air,batch=None,group=None,groupbutt=None):
 
         self.xy = xy # in percent
         self.butt = buttons
@@ -425,6 +442,8 @@ class ButtonBar():
         self.sec_padd = sec_padding
         self.align = align
         self.col = color
+
+        self.visible = True
 
         self.batch = batch
         self.groupbutt = groupbutt
@@ -454,6 +473,14 @@ class ButtonBar():
                 if butt.w > self.wh[0]:
                     self.wh = self.w,butt.wh[1]
 
+    def get_hovers(self):
+
+        hovers = []
+        for butt in self.butt:
+            if butt.hover:
+                return [butt]
+        return hovers
+
     def update(self,S):
 
         #self.check_butt_size()
@@ -467,7 +494,7 @@ class ButtonBar():
             self.skin.update(scale_x=S[0],scale_y=self.wh[1]+2*self.sec_padd)
             y = self.xy[1]*S[1]+self.sec_padd
             if self.align == "right":
-                x = S[0] - self.padd
+                x = S[0] - self.padd - self.butt[0].w
                 dx = -1
             else:
                 x = self.padd
@@ -480,7 +507,7 @@ class ButtonBar():
             self.skin.update(scale_x=self.wh[0]+2*self.sec_padd,scale_y=S[1])
             x = self.xy[0]*S[0]+self.sec_padd
             if self.align == "top":
-                y = S[1] - self.padd
+                y = S[1] - self.padd - self.butt[0].h
                 dy = -1
             else:
                 y = self.padd
@@ -489,3 +516,76 @@ class ButtonBar():
             for butt in self.butt:
                 butt.update(x,y)
                 y += dy*(butt.h+self.padd)
+
+    def check_mouse(self,x,y):
+
+        #get boxes
+        boxes = []
+        ids = []
+        for i in range(len(self.butt)):
+            if self.butt[i].visible:
+                boxes.append(self.butt[i].xywh)
+                ids += [i]
+
+        #check colli
+        good_box = colli_ABP_mult(boxes,(x,y))
+        for butt in self.butt:
+            butt.nothere()
+        if good_box != None:
+            self.butt[ids[good_box]].iamhere()
+
+    def check_pressed(self):
+        a = self.get_hovers()
+        if a != []:
+            a[0].ipressed()
+
+    def check_released(self):
+        a = self.get_hovers()
+        if a != []:
+            a[0].irealeased()
+
+
+def colli_ABP_mult(boxes,pt):
+    ## retourne None si le point est dans aucune boite
+    ## retourne l'indice de la premiere box des boites concernées sinon
+    #
+    #   pt : (x,y)
+    #   boxes : [box1,box2...,boxn]
+    #   boxi : (x,y,w,h)
+    #
+
+
+    goodx = []
+    goody = []
+
+    ## Premier niveau -> on vérifie si on est pas à gauche de toutes les box
+    for i in range(len(boxes)):
+        if pt[0] >= boxes[i][0]:
+            goodx.append(i)
+    if goodx == []:
+        return None # retourne un ouai bah t'es dans rien mon pote
+
+    ## 2e niveau -> on vérifie si on est pas en dessous des box qui sont bien
+    for i in goodx:
+        if pt[1] >= boxes[i][1]:
+            goody.append(i)
+    if goody == []:
+        return None # retourne un ouai bah t'es dans rien mon pote
+
+    ## 3e niveau -> on vérifie si on est pas à droite des box qui sont bien
+    goodx = []
+    for i in goody:
+        if pt[0] < boxes[i][0] + boxes[i][2]:
+            goodx.append(i)
+    if goodx == []:
+        return None # retourne un ouai bah t'es dans rien mon pote
+
+    ## 4e niveau -> on vérifie si on est pas en haut des box qui sont bien
+    goody = []
+    for i in goodx:
+        if pt[1] < boxes[i][1] + boxes[i][3]:
+            goody.append(i)
+    if goody == []:
+        return None # retourne un ouai bah t'es dans rien mon pote
+
+    return goody[0]

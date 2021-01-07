@@ -1,4 +1,7 @@
-
+##  "seize" by deltasfer
+##
+##  more explanations on
+##  https://github.com/deltasfer/seize
 
 import pyglet,json
 import pyglet.gl as gl
@@ -8,7 +11,7 @@ from src import graphic as g
 from src.dic import *
 import src.colors as c
 
-FULLSCREEN = True
+FULLSCREEN = False
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__)) # fopatouché
 if ' ' in CURRENT_PATH:
@@ -71,6 +74,9 @@ class App():
         -editing
         """
 
+        ## pending tasks
+        #self.pending_tasks = []
+
 
         ## keys
         self.keys = key.KeyStateHandler()
@@ -118,8 +124,10 @@ class App():
         ### PART IV : buttons, ..
 
         self.buttons = {}
-        self.buttons['save'] = g.Button(box(self.S[0]-100,self.S[1] -150,30,30),self.open_config,c.oldlace,c.blue,self.batch,group=self.group5)
-        self.butbar = g.ButtonBar((0,0.8),self.S,[self.buttons['save']],batch=self.batch,group=self.group1,groupbutt=self.group5)
+        self.buttons['save'] = g.Button(box(self.S[0]-100,self.S[1] -150,30,30),self.save_file,c.oldlace,c.blue,self.batch,group=self.group5)
+        self.buttons['thg'] = g.Button(box(self.S[0]-100,self.S[1] -150,30,30),self.get_out,c.deepskyblue,c.blue,self.batch,group=self.group5)
+        self.butbar = {}
+        self.butbar['main'] = g.ButtonBar((0,0.8),self.S,[self.buttons['save'],self.buttons['thg']],align='right',batch=self.batch,group=self.group1,groupbutt=self.group5)
 
         self.open_config()
         #self.addSeize('megaseize',True)
@@ -141,7 +149,6 @@ class App():
             self.change_size('borderless')
 
         pyglet.app.run()
-
 
 
     ### ONCE FUNCTIONS
@@ -256,6 +263,8 @@ class App():
                 self.window.set_size(*self.normal_size)
                 self.style = style
 
+    def get_out(self):
+        self.playing = False
 
 
     #opening/saving
@@ -373,7 +382,8 @@ class App():
         ## controls globaux
 
         if symbol == key.ESCAPE:
-            self.playing = False
+            self.get_out()
+            #self.playing = False
 
         elif symbol == key.F11:
 
@@ -446,14 +456,42 @@ class App():
         self.M = [x,y]
         self.mouse_speed = module(dx,dy)
 
+
+        for bar in self.butbar:
+            if self.butbar[bar].visible :
+                self.butbar[bar].check_mouse(x,y)
+
     def on_mouse_drag(self,x, y, dx, dy, buttons, modifiers):
 
         self.M = [x,y]
         self.mouse_speed = module(dx,dy)
 
-        #print(dx,dy)
+        if self.mode == 'showing':
+            hovers = []
+            for bar in self.butbar:
+                if self.butbar[bar].visible :
+                    hovers = self.butbar[bar].get_hovers()
+            if hovers == [] :
+                self.seize[self.sz_id[self.sz]].movedx((dx,dy))
+        else:
+            for bar in self.butbar:
+                if self.butbar[bar].visible :
+                    self.butbar[bar].check_mouse(x,y)
 
-        self.seize[self.sz_id[self.sz]].movedx((dx,dy))
+    def on_mouse_press(self,x, y, button, modifiers):
+
+        if button == pyglet.window.mouse.LEFT :
+            for bar in self.butbar:
+                if self.butbar[bar].visible :
+                    self.butbar[bar].check_pressed()
+
+    def on_mouse_release(self,x, y, button, modifiers):
+
+        if button == pyglet.window.mouse.LEFT :
+            for bar in self.butbar:
+                if self.butbar[bar].visible :
+                    self.butbar[bar].check_released()
+                    self.butbar[bar].check_mouse(x,y)
 
     def on_close(self):
 
@@ -523,18 +561,23 @@ class App():
         self.anchor = self.S[0]*0.5,self.S[1]*0.5
 
         ## buttons
-        #self.buttons['save'].xy = self.S[0]-100,self.S[1] -150
-        #self.buttons['save'].update(self.S)
-        self.butbar.update(self.S)
+        self.butbar["main"].update(self.S)
 
         ### refresh seize
         for id in self.seize:
             self.seize[id].refresh(self.anchor)
 
-
         self.cursor.refresh(self.seize[self.sz_id[self.sz]],self.S,self.anchor)
 
         #print(self.style,self.normal_size)
+
+
+        ### PENDING TASKS
+
+        """while len(self.pending_tasks) != 0 :
+            if self.pending_tasks[0] != None:
+                self.pending_tasks[0]()
+            self.pending_tasks[1:]"""
 
     def gameloop(self,dt):
 
@@ -575,6 +618,7 @@ class App():
         else:
 
             self.on_close()
+            self.window.close()
 
 
 
