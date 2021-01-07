@@ -6,7 +6,9 @@ from pyglet.window import key
 from src.utils import *
 from src import graphic as g
 from src.dic import *
+import src.colors as c
 
+FULLSCREEN = True
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__)) # fopatouché
 if ' ' in CURRENT_PATH:
@@ -26,6 +28,9 @@ class App():
         initial_size = 1000,800
         self.window = pyglet.window.Window(*initial_size,file_drops=True,resizable=True)
         self.window.push_handlers(self)
+
+        self.icon = pyglet.resource.image("icon.ico")
+        self.window.set_icon(self.icon)
 
 
         ## paths
@@ -88,11 +93,13 @@ class App():
 
         self.group_10 = pyglet.graphics.OrderedGroup(-10)
         self.group0 = pyglet.graphics.OrderedGroup(0)
+        self.group1 = pyglet.graphics.OrderedGroup(1)
+        self.group5 = pyglet.graphics.OrderedGroup(5)
         self.group10 = pyglet.graphics.OrderedGroup(10)
 
         ## managers
-        self.tman = g.TextureManager()
-        self.sman = g.SpriteManager(self.batch)
+        #self.tman = g.TextureManager()
+        #self.sman = g.SpriteManager(self.batch)
 
         ## sprites
 
@@ -108,6 +115,12 @@ class App():
         self.initial_pos = (-self.S[0]*0.25,self.S[1]*0.25)
 
 
+        ### PART IV : buttons, ..
+
+        self.buttons = {}
+        self.buttons['save'] = g.Button(box(self.S[0]-100,self.S[1] -150,30,30),self.open_config,c.oldlace,c.blue,self.batch,group=self.group5)
+        self.butbar = g.ButtonBar((0,0.8),self.S,[self.buttons['save']],batch=self.batch,group=self.group1,groupbutt=self.group5)
+
         self.open_config()
         #self.addSeize('megaseize',True)
 
@@ -116,15 +129,19 @@ class App():
         ## cursor
         self.cursor = g.Cursor(group=self.group10,batch=self.batch)
 
-        ### PART IV : final launch
+        ### PART V : final launch
 
         ## launching the machine u know (launching gameloop)
         self.playing = True
         self.draww = True
         self.nb = 0
-
         pyglet.clock.schedule_interval(self.gameloop,0.0000000000001)
+
+        if FULLSCREEN:
+            self.change_size('borderless')
+
         pyglet.app.run()
+
 
 
     ### ONCE FUNCTIONS
@@ -163,7 +180,6 @@ class App():
             self.maximized_sizes[screen] = windo.get_size()
             windo.close()
 
-
     def change_mode(self,mode='editing'):
 
         if mode == 'editing':
@@ -198,6 +214,7 @@ class App():
                 newwindow.push_handlers(self.keys)
                 self.window.close()
                 self.window = newwindow
+                self.window.set_icon(self.icon)
 
                 ## size window
                 self.window.set_minimum_size(275,200)
@@ -225,6 +242,7 @@ class App():
                 self.window = newwindow
                 self.window.set_location(*old_pos)
                 self.window.set_minimum_size(275,200)
+                self.window.set_icon(self.icon)
 
 
                 self.window.maximize()
@@ -495,7 +513,6 @@ class App():
 
         self.batch.draw()
 
-
     def refresh(self):
 
         if self.window.get_size() != self.S:
@@ -504,6 +521,11 @@ class App():
             self.S = self.window.get_size()
 
         self.anchor = self.S[0]*0.5,self.S[1]*0.5
+
+        ## buttons
+        #self.buttons['save'].xy = self.S[0]-100,self.S[1] -150
+        #self.buttons['save'].update(self.S)
+        self.butbar.update(self.S)
 
         ### refresh seize
         for id in self.seize:

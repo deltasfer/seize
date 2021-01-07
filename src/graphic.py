@@ -1,5 +1,7 @@
 
 
+from src.utils import *
+import src.colors as c
 import pyglet
 
 
@@ -343,11 +345,147 @@ class TextureManager():
 
 class SpriteManager():
 
-    def __init__(self,batch):
+    def __init__(self,batch=None):
 
         self.sprites = []
         self.batch= batch
 
-    def add_Spr(self,text,x,y,group):
+    def add_Spr(self,text,x,y,group=None):
 
         return pyglet.sprite.Sprite(text,x,y,batch=self.batch,group=group)
+
+tman = TextureManager()
+#sman = SpriteManager()
+
+### BUTTONS ...
+
+class Button():
+
+    def __init__(self,box,function,color=(255,255,255,0),hover=(255,255,255,50),batch=None,group=None):
+
+        if type(box) == type(()):
+            self.box = box(box)
+        else:
+            self.box = box
+
+        self.function = function
+        self.hover = False
+        self.visible = True
+
+        self.col = color
+        self.col_hover = hover
+
+        self.img = tman.add_Texture(*box.wh,color)
+        self.img_hover = tman.add_Texture(*box.wh,hover)
+
+        self.skin = pyglet.sprite.Sprite(self.img,*self.box.xy,batch=batch,group=group)
+
+    def iamhere(self):
+
+        if not self.hover:
+            self.hover = True
+            self.skin.image = self.img_hover
+
+    def nothere(self):
+
+        if self.hover:
+            self.hover = False
+            self.skin.image = self.img
+
+    def update(self,x,y):
+
+        if x != self.skin.x:
+            self.skin.x = x
+        if y != self.skin.y:
+            self.skin.y = y
+
+    def _set_xy(self,pos):
+        self.skin.x,self.skin.y = pos
+
+    def _xy(self):
+        return self.skin.x,self.skin.y
+
+    def _h(self):
+        return self.box.h
+
+    def _w(self):
+        return self.box.w
+
+    xy = property(_xy,_set_xy)
+    h = property(_h)
+    w = property(_w)
+
+class ButtonBar():
+
+    def __init__(self,xy,S,buttons,style="w",padding = 50,sec_padding=10,align="right",color=c.air,batch=None,group=None,groupbutt=None):
+
+        self.xy = xy # in percent
+        self.butt = buttons
+        self.padd = padding
+        self.sec_padd = sec_padding
+        self.align = align
+        self.col = color
+
+        self.batch = batch
+        self.groupbutt = groupbutt
+
+        self.img = tman.add_Texture(1,1,color)
+        x,y = self.xy[0]*S[0],self.xy[1]*S[1]
+        self.skin = pyglet.sprite.Sprite(self.img,x,y,batch=batch,group=group)
+
+        self.style = style
+        if self.style == "w":
+            self.wh = S[0],0
+        else:
+            self.wh = 0,S[1]
+
+        self.check_butt_size()
+
+        self.update(S)
+
+    def check_butt_size(self):
+
+        if self.style == "w":
+            for butt in self.butt:
+                if butt.h > self.wh[1]:
+                    self.wh = self.wh[0],butt.h
+        else:
+            for butt in self.butt:
+                if butt.w > self.wh[0]:
+                    self.wh = self.w,butt.wh[1]
+
+    def update(self,S):
+
+        #self.check_butt_size()
+
+        if self.xy[0]*S[0] != self.skin.x:
+            self.skin.x = self.xy[0]*S[0]
+        if self.xy[1]*S[1] != self.skin.y:
+            self.skin.y = self.xy[1]*S[1]
+
+        if self.style == "w":
+            self.skin.update(scale_x=S[0],scale_y=self.wh[1]+2*self.sec_padd)
+            y = self.xy[1]*S[1]+self.sec_padd
+            if self.align == "right":
+                x = S[0] - self.padd
+                dx = -1
+            else:
+                x = self.padd
+                dx = 1
+
+            for butt in self.butt:
+                butt.update(x,y)
+                x += dx*(butt.w+self.padd)
+        else:
+            self.skin.update(scale_x=self.wh[0]+2*self.sec_padd,scale_y=S[1])
+            x = self.xy[0]*S[0]+self.sec_padd
+            if self.align == "top":
+                y = S[1] - self.padd
+                dy = -1
+            else:
+                y = self.padd
+                dy = 1
+
+            for butt in self.butt:
+                butt.update(x,y)
+                y += dy*(butt.h+self.padd)

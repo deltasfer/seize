@@ -11,6 +11,24 @@ from math import *
 class POINT(Structure):
     _fields_ = [("x", c_long), ("y", c_long)]
 
+class box():
+
+    def __init__(self,x,y,w,h):
+
+        self.w = w
+        self.h = h
+        self.x = x
+        self.y = y
+
+    def _wh(self):
+        return self.w,self.h
+
+    def _xy(self):
+        return self.x,self.y
+
+    wh = property(_wh)
+    xy = property(_xy)
+
 ## partie SCREEN
 
 def get_screen_size():
